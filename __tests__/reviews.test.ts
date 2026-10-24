@@ -1,11 +1,7 @@
 import http from "http";
 import type { AddressInfo } from "net";
 import { createApiClient } from "../src/http.js";
-import {
-  isDangerousTool,
-  removeChangeRequest,
-  requestChanges,
-} from "../src/reviews.js";
+import { removeChangeRequest, requestChanges } from "../src/reviews.js";
 
 type Seen = { method?: string; path?: string; type?: string; body: string };
 
@@ -64,18 +60,5 @@ describe("change requests", () => {
         path: "/2.0/repositories/ws/repo/pullrequests/7/request-changes",
       }),
     ]);
-  });
-});
-
-describe("isDangerousTool", () => {
-  it("gates the tools that delete content", () => {
-    expect(isDangerousTool("deletePullRequestComment")).toBe(true);
-    expect(isDangerousTool("deletePullRequestTask")).toBe(true);
-    expect(isDangerousTool("deleteAnything")).toBe(true);
-  });
-
-  it("leaves open the DELETEs that withdraw the caller's own review vote", () => {
-    expect(isDangerousTool("unapprovePullRequest")).toBe(false);
-    expect(isDangerousTool("removeChangeRequest")).toBe(false);
   });
 });

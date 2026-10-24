@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Model Context Protocol (MCP) server that provides AI assistants with programmatic access to Bitbucket Cloud and Server APIs. It's published as an npm package (`bitbucket-mcp`) and enables operations on repositories, pull requests, pipelines, and more through a standardized MCP interface.
 
-**Safety First**: A tool that deletes content is dangerous and stays off until `BITBUCKET_ENABLE_DANGEROUS` is set (`src/reviews.ts`, `isDangerousTool`). A DELETE that only withdraws the caller's own review vote (`unapprovePullRequest`, `removeChangeRequest`) is not dangerous. Every PR is analyzed with CodeQL for security.
+**Safety First**: A tool that deletes content is dangerous and stays off until `BITBUCKET_ENABLE_DANGEROUS` is set (`src/safety.ts`, `isDangerousTool`). A DELETE that only withdraws the caller's own review vote (`unapprovePullRequest`, `removeChangeRequest`) is not dangerous. Every PR is analyzed with CodeQL for security.
 
 ## Development Commands
 

@@ -31,11 +31,8 @@ import {
   pullRequestUpdateBody,
   uniquePullRequests,
 } from "./pull-requests.js";
-import {
-  isDangerousTool,
-  removeChangeRequest,
-  requestChanges,
-} from "./reviews.js";
+import { removeChangeRequest, requestChanges } from "./reviews.js";
+import { isDangerousTool } from "./safety.js";
 
 // =========== LOGGER SETUP ==========
 // File-based logging with sensible defaults and ability to disable
@@ -122,6 +119,15 @@ const LEGACY_LIMIT_SCHEMA = {
   description:
     "Deprecated alias for pagelen. Use pagelen/page/all for pagination control.",
 };
+
+/** A tool argument the validator rejects is the caller's error, not the server's. */
+function validArguments<T>(build: () => T): T {
+  try {
+    return build();
+  } catch (error) {
+    throw new McpError(ErrorCode.InvalidParams, describeError(error));
+  }
+}
 
 // =========== TYPE DEFINITIONS ===========
 /**
@@ -487,9 +493,6 @@ class BitbucketServer {
   private readonly api: AxiosInstance;
   private readonly config: BitbucketConfig;
   private readonly paginator: BitbucketPaginator;
-  private isDangerousTool(name: string): boolean {
-    return isDangerousTool(name);
-  }
 
   constructor() {
     // Initialize with the older Server class pattern
@@ -1943,7 +1946,7 @@ class BitbucketServer {
       ].filter(
         (tool) =>
           this.config.allowDangerousCommands === true ||
-          !this.isDangerousTool(tool.name)
+          !isDangerousTool(tool.name)
       ),
     }));
 
@@ -1958,7 +1961,7 @@ class BitbucketServer {
 
         // Guard dangerous tools when not enabled
         if (
-          this.isDangerousTool(toolName) &&
+          isDangerousTool(toolName) &&
           this.config.allowDangerousCommands !== true
         ) {
           throw new McpError(
@@ -1982,60 +1985,41 @@ class BitbucketServer {
               args.workspace as string,
               args.repo_slug as string
             );
-          case "getPullRequests": {
-            let query: PullRequestListQuery;
-            try {
-              query = pullRequestListQuery(args);
-            } catch (error) {
-              throw new McpError(ErrorCode.InvalidParams, describeError(error));
-            }
+          case "getPullRequests":
             return await this.getPullRequests(
               args.workspace as string,
               args.repo_slug as string,
-              query,
+              validArguments(() => pullRequestListQuery(args)),
               {
                 pagelen: (args.pagelen ?? args.limit) as number | undefined,
                 page: args.page as number | undefined,
                 all: args.all as boolean | undefined,
               }
             );
-          }
           case "createPullRequest":
-          case "createDraftPullRequest": {
-            let body: Record<string, unknown>;
-            try {
-              body = pullRequestCreateBody(
-                toolName === "createDraftPullRequest" ? { ...args, draft: true } : args
-              );
-            } catch (error) {
-              throw new McpError(ErrorCode.InvalidParams, describeError(error));
-            }
+          case "createDraftPullRequest":
             return await this.createPullRequest(
               args.workspace as string,
               args.repo_slug as string,
-              body
+              validArguments(() =>
+                pullRequestCreateBody(
+                  toolName === "createDraftPullRequest" ? { ...args, draft: true } : args
+                )
+              )
             );
-          }
           case "getPullRequest":
             return await this.getPullRequest(
               args.workspace as string,
               args.repo_slug as string,
               args.pull_request_id as string
             );
-          case "updatePullRequest": {
-            let body: Record<string, unknown>;
-            try {
-              body = pullRequestUpdateBody(args);
-            } catch (error) {
-              throw new McpError(ErrorCode.InvalidParams, describeError(error));
-            }
+          case "updatePullRequest":
             return await this.updatePullRequest(
               args.workspace as string,
               args.repo_slug as string,
               args.pull_request_id as string,
-              body
+              validArguments(() => pullRequestUpdateBody(args))
             );
-          }
           case "getPullRequestActivity":
             return await this.getPullRequestActivity(
               args.workspace as string,
