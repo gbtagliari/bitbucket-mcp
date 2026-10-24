@@ -1,6 +1,7 @@
 import {
   PULL_REQUEST_LIST_FIELDS,
   pullRequestListParams,
+  pullRequestUpdateBody,
   pullRequestListQuery,
   uniquePullRequests,
 } from "../src/pull-requests.js";
@@ -136,5 +137,46 @@ describe("uniquePullRequests", () => {
       { title: "a" },
       { title: "a" },
     ]);
+  });
+});
+
+describe("pullRequestUpdateBody", () => {
+  it("sends only the fields the caller passed", () => {
+    expect(pullRequestUpdateBody({ workspace: "ws", title: "t" })).toEqual({ title: "t" });
+    expect(pullRequestUpdateBody({ description: "" })).toEqual({ description: "" });
+  });
+
+  it("sends reviewers as the objects Bitbucket expects", () => {
+    expect(
+      pullRequestUpdateBody({ reviewers: [" {a-1} ", "{b-2}"] })
+    ).toEqual({ reviewers: [{ uuid: "{a-1}" }, { uuid: "{b-2}" }] });
+  });
+
+  it("drops a blank or repeated reviewer", () => {
+    expect(pullRequestUpdateBody({ reviewers: ["{a-1}", "  ", "{a-1}"] })).toEqual({
+      reviewers: [{ uuid: "{a-1}" }],
+    });
+  });
+
+  it("rejects a reviewer list with no UUID, as it would remove every reviewer", () => {
+    expect(() => pullRequestUpdateBody({ reviewers: [] })).toThrow(
+      "reviewers must list at least one UUID"
+    );
+    expect(() => pullRequestUpdateBody({ reviewers: [" "] })).toThrow(
+      "reviewers must list at least one UUID"
+    );
+  });
+
+  it("rejects reviewers that are not a list of strings", () => {
+    expect(() => pullRequestUpdateBody({ reviewers: "{a-1}" })).toThrow(
+      "reviewers must be a list of UUID strings"
+    );
+    expect(() => pullRequestUpdateBody({ reviewers: [42] })).toThrow(
+      "reviewers must be a list of UUID strings"
+    );
+  });
+
+  it("rejects a title that is not a string", () => {
+    expect(() => pullRequestUpdateBody({ title: 1 })).toThrow("title must be a string");
   });
 });

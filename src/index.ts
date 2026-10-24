@@ -27,6 +27,7 @@ import {
   type PullRequestListQuery,
   pullRequestListParams,
   pullRequestListQuery,
+  pullRequestUpdateBody,
   uniquePullRequests,
 } from "./pull-requests.js";
 
@@ -733,6 +734,12 @@ class BitbucketServer {
               description: {
                 type: "string",
                 description: "New pull request description",
+              },
+              reviewers: {
+                type: "array",
+                items: { type: "string" },
+                description:
+                  "Reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Replaces the whole reviewer list: to add a reviewer, pass the current reviewers plus the new one. Omit it to keep the list.",
               },
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -1959,14 +1966,20 @@ class BitbucketServer {
               args.repo_slug as string,
               args.pull_request_id as string
             );
-          case "updatePullRequest":
+          case "updatePullRequest": {
+            let body: Record<string, unknown>;
+            try {
+              body = pullRequestUpdateBody(args);
+            } catch (error) {
+              throw new McpError(ErrorCode.InvalidParams, describeError(error));
+            }
             return await this.updatePullRequest(
               args.workspace as string,
               args.repo_slug as string,
               args.pull_request_id as string,
-              args.title as string,
-              args.description as string
+              body
             );
+          }
           case "getPullRequestActivity":
             return await this.getPullRequestActivity(
               args.workspace as string,
@@ -2618,24 +2631,19 @@ class BitbucketServer {
     workspace: string,
     repo_slug: string,
     pull_request_id: string,
-    title?: string,
-    description?: string
+    body: Record<string, unknown>
   ) {
     try {
       logger.info("Updating Bitbucket pull request", {
         workspace,
         repo_slug,
         pull_request_id,
+        fields: Object.keys(body),
       });
-
-      // Only include fields that are provided
-      const updateData: Record<string, any> = {};
-      if (title !== undefined) updateData.title = title;
-      if (description !== undefined) updateData.description = description;
 
       const response = await this.api.put(
         `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`,
-        updateData
+        body
       );
 
       return {

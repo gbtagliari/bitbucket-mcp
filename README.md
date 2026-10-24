@@ -289,9 +289,11 @@ Updates a pull request.
 - `workspace`: Bitbucket workspace name
 - `repo_slug`: Repository slug
 - `pull_request_id`: Pull request ID
-- Pagination controls described in [Pagination](#pagination)
-- Pagination controls described in [Pagination](#pagination)
-- Various optional update parameters (title, description, etc.)
+- `title` (optional): New title
+- `description` (optional): New description
+- `reviewers` (optional): Reviewer UUIDs. The list replaces the current reviewers, so pass the current ones plus the new one to add a reviewer. An empty list is refused.
+
+A field you leave out keeps its value.
 
 #### `getPullRequestActivity`
 

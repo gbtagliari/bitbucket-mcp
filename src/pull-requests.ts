@@ -114,3 +114,39 @@ export function uniquePullRequests<T extends { id?: unknown }>(values: T[]): T[]
     return true;
   });
 }
+
+/**
+ * Bitbucket takes reviewers as `[{uuid}]`. A blank entry is dropped and a repeated one kept once.
+ */
+export function reviewerList(value: unknown): Array<{ uuid: string }> {
+  if (!Array.isArray(value) || value.some((uuid) => typeof uuid !== "string")) {
+    throw new Error("reviewers must be a list of UUID strings");
+  }
+  const uuids = new Set(
+    (value as string[]).map((uuid) => uuid.trim()).filter(Boolean)
+  );
+  return [...uuids].map((uuid) => ({ uuid }));
+}
+
+/**
+ * The PUT body of updatePullRequest. Bitbucket keeps every field the body leaves out, and
+ * `reviewers` replaces the whole list. An empty list would remove every reviewer, so it is
+ * refused.
+ */
+export function pullRequestUpdateBody(
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const name of ["title", "description"] as const) {
+    const value = optionalString(args, name);
+    if (value !== undefined) body[name] = value;
+  }
+  if (args.reviewers !== undefined && args.reviewers !== null) {
+    const reviewers = reviewerList(args.reviewers);
+    if (reviewers.length === 0) {
+      throw new Error("reviewers must list at least one UUID");
+    }
+    body.reviewers = reviewers;
+  }
+  return body;
+}
