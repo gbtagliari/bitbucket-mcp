@@ -125,3 +125,5 @@ After each tag, update in this order:
 - [x] Phase 2 (checked live on PRs #3395 and #3396; tagged v5.0.7-edm.2, installed)
 - [x] Phase 3 (checked live on PRs #3361 and #3397; tagged v5.0.7-edm.3, installed)
 - [x] Consumers (steps 1-6, edm-webservices `chore/update-repo-skills`; mcp.md pins v5.0.7-edm.3)
+- [x] Smoke of v5.0.7-edm.3 (PR #3391): list tools return pages, pipeline runs carry `target.type`,
+  `prepare` builds dist for `npx github:gbtagliari/bitbucket-mcp#<tag>`; tagged v5.0.7-edm.4
