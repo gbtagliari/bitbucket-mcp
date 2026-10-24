@@ -131,7 +131,7 @@ export function uniquePullRequests<T extends { id?: unknown }>(values: T[]): T[]
 /**
  * Bitbucket takes reviewers as `[{uuid}]`. A blank entry is dropped and a repeated one kept once.
  */
-export function reviewerList(value: unknown): Array<{ uuid: string }> {
+function reviewerList(value: unknown): Array<{ uuid: string }> {
   if (!Array.isArray(value) || value.some((uuid) => typeof uuid !== "string")) {
     throw new Error("reviewers must be a list of UUID strings");
   }
@@ -143,8 +143,7 @@ export function reviewerList(value: unknown): Array<{ uuid: string }> {
 
 /**
  * The PUT body of updatePullRequest. Bitbucket keeps every field the body leaves out, and
- * `reviewers` replaces the whole list. An empty list would remove every reviewer, so it is
- * refused.
+ * `reviewers` replaces the whole list, so an empty list removes every reviewer.
  */
 export function pullRequestUpdateBody(
   args: Record<string, unknown>
@@ -155,11 +154,7 @@ export function pullRequestUpdateBody(
     if (value !== undefined) body[name] = value;
   }
   if (args.reviewers !== undefined && args.reviewers !== null) {
-    const reviewers = reviewerList(args.reviewers);
-    if (reviewers.length === 0) {
-      throw new Error("reviewers must list at least one UUID");
-    }
-    body.reviewers = reviewers;
+    body.reviewers = reviewerList(args.reviewers);
   }
   const closeSourceBranch = optionalBoolean(args, "close_source_branch");
   if (closeSourceBranch !== undefined) body.close_source_branch = closeSourceBranch;
@@ -168,7 +163,8 @@ export function pullRequestUpdateBody(
 
 /**
  * The POST body of createPullRequest. The source branch closes on merge unless the caller
- * passes `close_source_branch: false`, as before the parameter existed.
+ * passes `close_source_branch: false`, as before the parameter existed. An empty reviewer list
+ * is sent as given: an omitted one lets the repository add its default reviewers.
  */
 export function pullRequestCreateBody(
   args: Record<string, unknown>
@@ -181,8 +177,7 @@ export function pullRequestCreateBody(
     close_source_branch: optionalBoolean(args, "close_source_branch") ?? true,
   };
   if (args.reviewers !== undefined && args.reviewers !== null) {
-    const reviewers = reviewerList(args.reviewers);
-    if (reviewers.length > 0) body.reviewers = reviewers;
+    body.reviewers = reviewerList(args.reviewers);
   }
   if (optionalBoolean(args, "draft") === true) body.draft = true;
   return body;

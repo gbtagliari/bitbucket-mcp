@@ -676,7 +676,7 @@ class BitbucketServer {
                 type: "array",
                 items: { type: "string" },
                 description:
-                  "List of reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}')",
+                  "List of reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Pass an empty list to keep the repository's default reviewers off; omit it to let the repository add them.",
               },
               draft: {
                 type: "boolean",
@@ -743,7 +743,7 @@ class BitbucketServer {
                 type: "array",
                 items: { type: "string" },
                 description:
-                  "Reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Replaces the whole reviewer list: to add a reviewer, pass the current reviewers plus the new one. Omit it to keep the list.",
+                  "Reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Replaces the whole reviewer list: to add a reviewer, pass the current reviewers plus the new one. An empty list removes every reviewer. Omit it to keep the list.",
               },
               close_source_branch: {
                 type: "boolean",
@@ -1306,7 +1306,7 @@ class BitbucketServer {
                 type: "array",
                 items: { type: "string" },
                 description:
-                  "List of reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}')",
+                  "List of reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Pass an empty list to keep the repository's default reviewers off; omit it to let the repository add them.",
               },
               close_source_branch: {
                 type: "boolean",

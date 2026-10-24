@@ -159,13 +159,9 @@ describe("pullRequestUpdateBody", () => {
     });
   });
 
-  it("rejects a reviewer list with no UUID, as it would remove every reviewer", () => {
-    expect(() => pullRequestUpdateBody({ reviewers: [] })).toThrow(
-      "reviewers must list at least one UUID"
-    );
-    expect(() => pullRequestUpdateBody({ reviewers: [" "] })).toThrow(
-      "reviewers must list at least one UUID"
-    );
+  it("sends an empty reviewer list, which removes every reviewer", () => {
+    expect(pullRequestUpdateBody({ reviewers: [] })).toEqual({ reviewers: [] });
+    expect(pullRequestUpdateBody({ reviewers: [" "] })).toEqual({ reviewers: [] });
   });
 
   it("rejects reviewers that are not a list of strings", () => {
@@ -226,10 +222,14 @@ describe("pullRequestCreateBody", () => {
       draft: true,
     });
     expect(body).toMatchObject({ reviewers: [{ uuid: "{a-1}" }], draft: true });
-    expect(pullRequestCreateBody({ ...required, reviewers: [], draft: false })).not.toHaveProperty(
-      "reviewers"
-    );
     expect(pullRequestCreateBody({ ...required, draft: false })).not.toHaveProperty("draft");
+    expect(pullRequestCreateBody(required)).not.toHaveProperty("reviewers");
+  });
+
+  it("sends an explicit empty reviewer list, since an omitted one lets the repo add its defaults", () => {
+    expect(pullRequestCreateBody({ ...required, reviewers: [] })).toMatchObject({
+      reviewers: [],
+    });
   });
 
   it("rejects a missing required field", () => {

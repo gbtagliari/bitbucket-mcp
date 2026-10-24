@@ -263,7 +263,7 @@ Creates a new pull request.
 - `description`: Pull request description
 - `sourceBranch`: Source branch name
 - `targetBranch`: Target branch name
-- `reviewers` (optional): List of reviewer UUIDs
+- `reviewers` (optional): List of reviewer UUIDs. An empty list keeps the repository's default reviewers off; an omitted one lets the repository add them.
 - `draft` (optional): Whether to create the pull request as a draft
 - `close_source_branch` (optional): Whether to delete the source branch after the merge. Default: `true`
 
@@ -292,7 +292,7 @@ Updates a pull request.
 - `pull_request_id`: Pull request ID
 - `title` (optional): New title
 - `description` (optional): New description
-- `reviewers` (optional): Reviewer UUIDs. The list replaces the current reviewers, so pass the current ones plus the new one to add a reviewer. An empty list is refused.
+- `reviewers` (optional): Reviewer UUIDs. The list replaces the current reviewers, so pass the current ones plus the new one to add a reviewer. An empty list removes every reviewer.
 - `close_source_branch` (optional): Whether to delete the source branch after the merge
 
 A field you leave out keeps its value.
@@ -402,7 +402,7 @@ Creates a new draft pull request.
 - `description`: Pull request description
 - `sourceBranch`: Source branch name
 - `targetBranch`: Target branch name
-- `reviewers` (optional): List of reviewer UUIDs
+- `reviewers` (optional): List of reviewer UUIDs. An empty list keeps the repository's default reviewers off; an omitted one lets the repository add them.
 - `close_source_branch` (optional): Whether to delete the source branch after the merge. Default: `true`
 
 **Note:** This is equivalent to calling `createPullRequest` with `draft: true`.
