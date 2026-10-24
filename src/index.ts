@@ -729,8 +729,6 @@ class BitbucketServer {
                 description: "Pull request ID",
               },
               fields: objectFieldsSchema("id,merge_commit.hash"),
-              ...PAGINATION_BASE_SCHEMA,
-              all: PAGINATION_ALL_SCHEMA,
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
           },

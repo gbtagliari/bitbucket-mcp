@@ -6,8 +6,7 @@ import { PAGING_FIELDS, pageFields, userFields, withFields } from "./fields.js";
 
 /**
  * What a thread rebuild reads: the parent chain, the inline anchor, who resolved it and the
- * raw text. A comment carries `resolution` only once its thread is resolved. The full page
- * is about three times larger, mostly the rendered HTML and the links.
+ * raw text. A comment carries `resolution` only once its thread is resolved.
  */
 export const COMMENT_LIST_FIELDS = pageFields([
   "id",

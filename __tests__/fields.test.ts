@@ -31,6 +31,16 @@ describe("withFields", () => {
     expect(withFields("+values.participants", ["next"])).toBe("+values.participants");
     expect(withFields("-values.links", ["next"])).toBe("-values.links");
   });
+
+  it("drops a relative entry that would remove a required key or its parent", () => {
+    expect(withFields("-values.deleted,-values.links", ["values.deleted"])).toBe("-values.links");
+    expect(withFields("-values.parent", ["values.parent.id"])).toBe("");
+    expect(withFields("-next", ["next"])).toBe("");
+  });
+
+  it("adds the required keys when absolute and relative entries are mixed", () => {
+    expect(withFields("values.id,+values.title", ["next"])).toBe("values.id,+values.title,next");
+  });
 });
 
 describe("listFields", () => {

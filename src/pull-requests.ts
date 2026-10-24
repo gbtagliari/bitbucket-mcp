@@ -24,7 +24,7 @@ export const PULL_REQUEST_LIST_FIELDS = pageFields(PULL_REQUEST_SUMMARY_FIELDS);
 
 /**
  * One pull request adds what a review reads: the description, who approved, and whether the
- * source branch closes on merge. The full object is about six times larger.
+ * source branch closes on merge.
  */
 export const PULL_REQUEST_FIELDS = [
   ...PULL_REQUEST_SUMMARY_FIELDS,
@@ -43,8 +43,7 @@ export const pullRequestParams = (fields?: string): { fields: string } => ({
 
 /**
  * An activity entry holds one of `comment`, `approval`, `changes_requested` or `update`, each
- * with the whole pull request and comment attached. A review reads who acted and when, so the
- * default is about a fifteenth of the full page.
+ * with the whole pull request and comment attached. A review reads who acted and when.
  */
 export const ACTIVITY_LIST_FIELDS = pageFields([
   "comment.id",
@@ -61,7 +60,7 @@ export const ACTIVITY_LIST_FIELDS = pageFields([
 
 /**
  * A commit carries its repository, parents, links and the rendered message; a review reads
- * the hash, the date and who wrote it. The full page is about seven times larger.
+ * the hash, the date and who wrote it.
  */
 export const COMMIT_LIST_FIELDS = pageFields([
   "hash",

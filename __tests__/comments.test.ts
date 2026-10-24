@@ -44,6 +44,12 @@ describe("commentListFields", () => {
   it("keeps relative fields as given", () => {
     expect(commentListFields("+values.content.html")).toBe("+values.content.html");
   });
+
+  it("refuses to strip a key the deleted-thread filter reads", () => {
+    expect(commentListFields("-values.deleted,-values.content.html")).toBe(
+      "-values.content.html"
+    );
+  });
 });
 
 describe("withoutDeletedThreads", () => {

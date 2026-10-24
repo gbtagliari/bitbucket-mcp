@@ -17,14 +17,20 @@ export const pageFields = (fields: string[]): string =>
 
 /**
  * Adds to a caller's whitelist the keys this server reads. Relative fields (`+x`, `-x`) build
- * on Bitbucket's defaults, which keep every key, so they stay as given.
+ * on Bitbucket's defaults, which keep every key, so only a `-x` that would remove a required
+ * key, or an object that holds one, is dropped.
  */
 export function withFields(fields: string, required: string[]): string {
+  const removesRequired = (entry: string) => {
+    const path = entry.slice(1);
+    return required.some((field) => field === path || field.startsWith(`${path}.`));
+  };
   const entries = fields
     .split(",")
     .map((entry) => entry.trim())
-    .filter(Boolean);
-  if (entries.some((entry) => entry.startsWith("+") || entry.startsWith("-"))) {
+    .filter(Boolean)
+    .filter((entry) => !(entry.startsWith("-") && removesRequired(entry)));
+  if (entries.every((entry) => entry.startsWith("+") || entry.startsWith("-"))) {
     return entries.join(",");
   }
   const missing = required.filter((field) => !entries.includes(field));
@@ -32,7 +38,7 @@ export function withFields(fields: string, required: string[]): string {
 }
 
 /** A caller's whitelist would drop `next` and hide the later pages, so the paging keys stay. */
-export const withPagingFields = (fields: string): string =>
+const withPagingFields = (fields: string): string =>
   withFields(fields, PAGING_FIELDS);
 
 export const listFields = (fields: string | undefined, defaults: string): string =>
