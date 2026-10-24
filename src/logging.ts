@@ -1,3 +1,4 @@
+import axios from "axios";
 import fs from "fs";
 import type { Writable } from "stream";
 import winston from "winston";
@@ -8,8 +9,10 @@ export interface LoggerTarget {
 }
 
 const SECRET_KEY =
-  /^(authorization|proxy-authorization|cookie|set-cookie|auth|password|token|access_token|refresh_token|secret)$/i;
-const CREDENTIAL_IN_TEXT = /\b(Basic|Bearer)\s+[A-Za-z0-9+/=._~-]+/gi;
+  /^(authorization|proxy-authorization|cookie|set-cookie|auth|password|passwd|secret|token|(x-)?api[-_]key|(access|refresh|private)[-_]token)$/i;
+// The length floor keeps prose such as "Token is invalid" readable.
+const CREDENTIAL_IN_TEXT = /\b(Basic|Bearer|Token)\s+[A-Za-z0-9+/=._~-]{8,}/gi;
+const URL_USERINFO = /\b([a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/gi;
 const REDACTED = "[REDACTED]";
 const MAX_DEPTH = 8;
 
@@ -26,17 +29,40 @@ const isPlainObject = (value: object): boolean => {
  */
 function redact(value: unknown, depth: number, seen: WeakSet<object>): unknown {
   if (typeof value === "string") {
-    return value.replace(CREDENTIAL_IN_TEXT, `$1 ${REDACTED}`);
+    return value
+      .replace(CREDENTIAL_IN_TEXT, `$1 ${REDACTED}`)
+      .replace(URL_USERINFO, `$1${REDACTED}@`);
   }
   if (typeof value === "function") return undefined;
   if (value === null || typeof value !== "object") return value;
   if (seen.has(value)) return "[Circular]";
   if (depth >= MAX_DEPTH) return "[Truncated]";
   seen.add(value);
+  try {
+    return redactObject(value, depth, seen);
+  } finally {
+    // Only an ancestor makes a cycle; an object met again on another branch is written again.
+    seen.delete(value);
+  }
+}
 
+function redactObject(value: object, depth: number, seen: WeakSet<object>): unknown {
   const candidate = value as Record<string, any>;
+  if (axios.isAxiosError(value)) {
+    // toJSON leaves out the response, which holds Bitbucket's reason for the failure.
+    const response = value.response
+      ? { status: value.response.status, data: value.response.data }
+      : undefined;
+    return redact({ ...value.toJSON(), response }, depth + 1, seen);
+  }
   if (typeof candidate.toJSON === "function") {
-    return redact(candidate.toJSON(), depth + 1, seen);
+    let serialized: unknown;
+    try {
+      serialized = candidate.toJSON();
+    } catch {
+      return "[Unserializable]";
+    }
+    return redact(serialized, depth + 1, seen);
   }
   if (Array.isArray(value)) {
     return value.map((item) => redact(item, depth + 1, seen));
@@ -80,7 +106,12 @@ export function createLogger(target: LoggerTarget): winston.Logger {
   if (target.file) {
     try {
       ownerOnlyFile(target.file);
-      transports.push(new winston.transports.File({ filename: target.file }));
+      transports.push(
+        new winston.transports.File({
+          filename: target.file,
+          options: { flags: "a", mode: 0o600 },
+        })
+      );
     } catch {
       // A log nobody can restrict is not written at all.
     }

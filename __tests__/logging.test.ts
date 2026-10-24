@@ -83,7 +83,76 @@ describe("createLogger", () => {
     expect(written).not.toContain(PASSWORD);
   });
 
-  it("restricts the log file to its owner, also when it already exists", () => {
+  it("keeps a password in a URL out of the log", async () => {
+    const { logger, lines, flushed } = capture();
+
+    logger.info("Normalized Bitbucket configuration", {
+      fromBaseUrl: `https://user:${PASSWORD}@bitbucket.org/ws`,
+    });
+    await flushed();
+
+    const written = lines.join("");
+    expect(written).toContain("bitbucket.org/ws");
+    expect(written).not.toContain(PASSWORD);
+  });
+
+  it("keeps Bitbucket's error body of a logged axios error", async () => {
+    const { logger, lines, flushed } = capture();
+
+    logger.error("Error getting diffstat", { error: failedRequest() });
+    await flushed();
+
+    const entry = JSON.parse(lines.join(""));
+    expect(entry.error.response).toEqual({
+      status: 404,
+      data: { error: { message: "Not found" } },
+    });
+  });
+
+  it("keeps credentials under other common names out of the log", async () => {
+    const { logger, lines, flushed } = capture();
+
+    logger.info("headers", {
+      "x-api-key": "k-value-1",
+      api_key: "k-value-2",
+      "access-token": "k-value-3",
+      private_token: "k-value-4",
+      header: "Token k-value-5",
+    });
+    await flushed();
+
+    expect(lines.join("")).not.toMatch(/k-value-\d/);
+  });
+
+  it("writes an object referenced twice in full both times", async () => {
+    const { logger, lines, flushed } = capture();
+    const shared = { url: "/x" };
+
+    logger.info("shared", { first: shared, second: shared });
+    await flushed();
+
+    const entry = JSON.parse(lines.join(""));
+    expect(entry.first).toEqual({ url: "/x" });
+    expect(entry.second).toEqual({ url: "/x" });
+  });
+
+  it("still logs when a value cannot serialize itself", async () => {
+    const { logger, lines, flushed } = capture();
+    const broken = {
+      toJSON() {
+        throw new Error("cannot serialize");
+      },
+    };
+
+    expect(() => logger.error("failure", { broken, workspace: "ws" })).not.toThrow();
+    await flushed();
+
+    expect(lines.join("")).toContain('"workspace":"ws"');
+  });
+
+  const posixIt = process.platform === "win32" ? it.skip : it;
+
+  posixIt("restricts the log file to its owner, also when it already exists", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bitbucket-mcp-log-"));
     const file = path.join(dir, "bitbucket.log");
     fs.writeFileSync(file, "", { mode: 0o644 });
