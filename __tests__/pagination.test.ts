@@ -1,6 +1,10 @@
 import { jest } from "@jest/globals";
 import type { AxiosInstance } from "axios";
-import { BitbucketPaginator, BITBUCKET_MAX_PAGELEN } from "../src/pagination.js";
+import {
+  BitbucketPaginator,
+  BITBUCKET_MAX_PAGELEN,
+  toPage,
+} from "../src/pagination.js";
 
 const createMockAxios = () => {
   return {
@@ -80,5 +84,50 @@ describe("BitbucketPaginator", () => {
     expect(result.values.map((item) => item.id)).toEqual([1, 2]);
     expect(result.fetchedPages).toBe(2);
     expect(result.totalFetched).toBe(2);
+  });
+});
+
+describe("toPage", () => {
+  it("returns the values with the link to the next page", () => {
+    const page = toPage({
+      values: [{ id: 1 }],
+      page: 1,
+      pagelen: 10,
+      next: "https://api.bitbucket.org/2.0/test?page=2",
+      fetchedPages: 1,
+      totalFetched: 1,
+    });
+
+    expect(page).toEqual({
+      values: [{ id: 1 }],
+      page: 1,
+      pagelen: 10,
+      next: "https://api.bitbucket.org/2.0/test?page=2",
+    });
+  });
+
+  it("omits next on the last page", () => {
+    const page = toPage({
+      values: [],
+      page: 3,
+      pagelen: 10,
+      fetchedPages: 1,
+      totalFetched: 0,
+    });
+
+    expect(JSON.parse(JSON.stringify(page))).toEqual({
+      values: [],
+      page: 3,
+      pagelen: 10,
+    });
+  });
+
+  it("takes values the caller already filtered", () => {
+    const page = toPage(
+      { values: [{ id: 1 }, { id: 2 }], pagelen: 10, fetchedPages: 1, totalFetched: 2 },
+      [{ id: 2 }]
+    );
+
+    expect(page.values).toEqual([{ id: 2 }]);
   });
 });

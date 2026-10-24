@@ -184,3 +184,26 @@ export class BitbucketPaginator {
     return Math.min(integer, BITBUCKET_MAX_PAGELEN);
   }
 }
+
+export interface ValuesPage<T> {
+  values: T[];
+  page?: number;
+  pagelen: number;
+  next?: string;
+}
+
+/**
+ * Shapes a paginated result for a tool response. Keeping `next` tells the caller that more
+ * items exist; returning the bare values hid every page after the first.
+ */
+export function toPage<T>(
+  result: PaginatedValuesResult<T>,
+  values: T[] = result.values
+): ValuesPage<T> {
+  return {
+    values,
+    page: result.page,
+    pagelen: result.pagelen,
+    next: result.next,
+  };
+}

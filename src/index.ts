@@ -18,6 +18,7 @@ import {
   BITBUCKET_ALL_ITEMS_CAP,
   BITBUCKET_DEFAULT_PAGELEN,
   BITBUCKET_MAX_PAGELEN,
+  toPage,
 } from "./pagination.js";
 import { describeError } from "./errors.js";
 import { withoutDeletedThreads } from "./comments.js";
@@ -837,7 +838,7 @@ class BitbucketServer {
         {
           name: "getPullRequestComments",
           description:
-            "List comments on a pull request. Returns every page unless a specific `page` is requested, and omits deleted comments and their replies.",
+            "List comments on a pull request. Returns one page with `values` and, when more comments exist, `next`; pass `page` for a later page or `all: true` for every page. Omits deleted comments and their replies.",
           inputSchema: {
             type: "object",
             properties: {
@@ -2888,9 +2889,7 @@ class BitbucketServer {
         {
           pagelen,
           page,
-          // A review PR routinely carries more than one page of comments. Returning only
-          // the first page dropped the rest silently, because `next` is not passed on.
-          all: all ?? true,
+          all,
           description: "getPullRequestComments",
         }
       );
@@ -2899,7 +2898,11 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(withoutDeletedThreads(result.values), null, 2),
+            text: JSON.stringify(
+              toPage(result, withoutDeletedThreads(result.values)),
+              null,
+              2
+            ),
           },
         ],
       };
