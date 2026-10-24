@@ -134,7 +134,7 @@ export class BitbucketPaginator {
         totalFetched: aggregated.length,
       });
 
-      nextRequest = { url: response.data.next };
+      nextRequest = { url: this.checkedNextLink(response.data.next) };
     }
 
     if (aggregated.length > maxItems) {

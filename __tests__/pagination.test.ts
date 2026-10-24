@@ -9,6 +9,7 @@ import {
 const createMockAxios = () => {
   return {
     get: jest.fn(),
+    defaults: { baseURL: "https://api.bitbucket.org/2.0" },
   } as unknown as AxiosInstance & { get: jest.Mock };
 };
 
@@ -133,14 +134,8 @@ describe("toPage", () => {
 });
 
 describe("BitbucketPaginator next link", () => {
-  const withBaseUrl = () => {
-    const axios = createMockAxios();
-    (axios as any).defaults = { baseURL: "https://api.bitbucket.org/2.0" };
-    return axios;
-  };
-
   it("fetches the next link as given", async () => {
-    const axios = withBaseUrl();
+    const axios = createMockAxios();
     const paginator = new BitbucketPaginator(axios, createMockLogger());
     const next =
       "https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests?page=2&q=state%3D%22OPEN%22";
@@ -157,7 +152,7 @@ describe("BitbucketPaginator next link", () => {
   });
 
   it("refuses a next link outside the configured API", async () => {
-    const axios = withBaseUrl();
+    const axios = createMockAxios();
     const paginator = new BitbucketPaginator(axios, createMockLogger());
 
     await expect(
@@ -171,5 +166,18 @@ describe("BitbucketPaginator next link", () => {
       })
     ).rejects.toThrow("next must be a link returned by the Bitbucket API");
     expect(axios.get).not.toHaveBeenCalled();
+  });
+
+  it("stops following pages when a response links outside the configured API", async () => {
+    const axios = createMockAxios();
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+    (axios.get as any).mockResolvedValueOnce({
+      data: { values: [{ id: 1 }], next: "https://evil.example/2.0/x?page=2" },
+    });
+
+    await expect(paginator.fetchValues("/x", { all: true })).rejects.toThrow(
+      "next must be a link returned by the Bitbucket API"
+    );
+    expect(axios.get).toHaveBeenCalledTimes(1);
   });
 });
