@@ -2,6 +2,7 @@ import {
   PULL_REQUEST_LIST_FIELDS,
   pullRequestListParams,
   pullRequestListQuery,
+  uniquePullRequests,
 } from "../src/pull-requests.js";
 
 describe("pullRequestListParams", () => {
@@ -112,5 +113,28 @@ describe("pullRequestListQuery", () => {
 
   it("rejects a filter that is not a string", () => {
     expect(() => pullRequestListQuery({ q: 42 })).toThrow("q must be a string");
+  });
+});
+
+describe("uniquePullRequests", () => {
+  it("keeps the first copy of a pull request a reviewer query repeated", () => {
+    expect(
+      uniquePullRequests([
+        { id: 3394, title: "a" },
+        { id: 3394, title: "a" },
+        { id: 3391, title: "b" },
+        { id: 3394, title: "a" },
+      ])
+    ).toEqual([
+      { id: 3394, title: "a" },
+      { id: 3391, title: "b" },
+    ]);
+  });
+
+  it("keeps entries without an id, as a fields selection may leave it out", () => {
+    expect(uniquePullRequests([{ title: "a" }, { title: "a" }])).toEqual([
+      { title: "a" },
+      { title: "a" },
+    ]);
   });
 });

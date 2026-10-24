@@ -27,6 +27,7 @@ import {
   type PullRequestListQuery,
   pullRequestListParams,
   pullRequestListQuery,
+  uniquePullRequests,
 } from "./pull-requests.js";
 
 // =========== LOGGER SETUP ==========
@@ -2465,7 +2466,11 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(toPage(result), null, 2),
+            text: JSON.stringify(
+              toPage(result, uniquePullRequests(result.values)),
+              null,
+              2
+            ),
           },
         ],
       };

@@ -100,3 +100,17 @@ export function pullRequestListParams(
     : PULL_REQUEST_LIST_FIELDS;
   return params;
 }
+
+/**
+ * A `q` on a list field such as `reviewers.uuid` joins against it, so Bitbucket returns a pull
+ * request once per matching row. Keep the first copy.
+ */
+export function uniquePullRequests<T extends { id?: unknown }>(values: T[]): T[] {
+  const seen = new Set<unknown>();
+  return values.filter((value) => {
+    if (value?.id === undefined) return true;
+    if (seen.has(value.id)) return false;
+    seen.add(value.id);
+    return true;
+  });
+}
