@@ -1,5 +1,6 @@
 import {
   ACTIVITY_LIST_FIELDS,
+  COMMIT_LIST_FIELDS,
   PULL_REQUEST_FIELDS,
   PULL_REQUEST_LIST_FIELDS,
   pullRequestParams,
@@ -146,6 +147,22 @@ describe("ACTIVITY_LIST_FIELDS", () => {
       "values.update.author.display_name",
       "values.update.author.uuid",
       "values.update.author.account_id",
+      "next",
+      "page",
+      "pagelen",
+    ]);
+  });
+});
+
+describe("COMMIT_LIST_FIELDS", () => {
+  it("keeps the hash, the date, the message and the Bitbucket user of the author", () => {
+    expect(COMMIT_LIST_FIELDS.split(",")).toEqual([
+      "values.hash",
+      "values.date",
+      "values.message",
+      "values.author.user.display_name",
+      "values.author.user.uuid",
+      "values.author.user.account_id",
       "next",
       "page",
       "pagelen",

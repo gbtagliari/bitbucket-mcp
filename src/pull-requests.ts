@@ -59,6 +59,17 @@ export const ACTIVITY_LIST_FIELDS = pageFields([
   ...userFields("update.author"),
 ]);
 
+/**
+ * A commit carries its repository, parents, links and the rendered message; a review reads
+ * the hash, the date and who wrote it. The full page is about seven times larger.
+ */
+export const COMMIT_LIST_FIELDS = pageFields([
+  "hash",
+  "date",
+  "message",
+  ...userFields("author.user"),
+]);
+
 export const PULL_REQUEST_STATES = ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"] as const;
 
 export type PullRequestState = (typeof PULL_REQUEST_STATES)[number];

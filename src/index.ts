@@ -30,6 +30,7 @@ import {
 } from "./comments.js";
 import {
   ACTIVITY_LIST_FIELDS,
+  COMMIT_LIST_FIELDS,
   type PullRequestListQuery,
   pullRequestCreateBody,
   pullRequestListParams,
@@ -967,7 +968,8 @@ class BitbucketServer {
         },
         {
           name: "getPullRequestCommits",
-          description: "Get commits on a pull request",
+          description:
+            "Get commits on a pull request. Each commit carries a slim default projection (hash, date, message, author.user); `fields` overrides it, e.g. `values.author.raw` for an author with no Bitbucket account.",
           inputSchema: {
             type: "object",
             properties: {
@@ -980,6 +982,7 @@ class BitbucketServer {
                 type: "string",
                 description: "Pull request ID",
               },
+              fields: pageFieldsSchema("values.hash,values.author.raw"),
               ...PAGINATION_BASE_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
             },
@@ -2115,7 +2118,8 @@ class BitbucketServer {
               args.pull_request_id as string,
               args.pagelen as number,
               args.page as number,
-              args.all as boolean
+              args.all as boolean,
+              validArguments(() => fieldsArgument(args))
             );
           case "addPullRequestComment":
             return await this.addPullRequestComment(
@@ -3110,7 +3114,8 @@ class BitbucketServer {
     pull_request_id: string,
     pagelen?: number,
     page?: number,
-    all?: boolean
+    all?: boolean,
+    fields?: string
   ) {
     try {
       logger.info("Getting Bitbucket pull request commits", {
@@ -3120,6 +3125,7 @@ class BitbucketServer {
         pagelen,
         page,
         all,
+        fields,
       });
 
       const result = await this.paginator.fetchValues(
@@ -3128,6 +3134,7 @@ class BitbucketServer {
           pagelen,
           page,
           all,
+          params: { fields: listFields(fields, COMMIT_LIST_FIELDS) },
           description: "getPullRequestCommits",
         }
       );
