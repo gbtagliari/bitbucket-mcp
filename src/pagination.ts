@@ -3,6 +3,8 @@ import type winston from "winston";
 
 export const BITBUCKET_DEFAULT_PAGELEN = 10;
 export const BITBUCKET_MAX_PAGELEN = 100;
+/** The pull request list and its activity log answer a pagelen above 50 with HTTP 400. */
+export const BITBUCKET_PULL_REQUEST_MAX_PAGELEN = 50;
 export const BITBUCKET_ALL_ITEMS_CAP = 1000;
 
 export interface PaginationRequestOptions {
@@ -12,6 +14,8 @@ export interface PaginationRequestOptions {
   next?: string;
   params?: Record<string, any>;
   defaultPagelen?: number;
+  /** The endpoint's own pagelen cap, when it is below BITBUCKET_MAX_PAGELEN. */
+  maxPagelen?: number;
   maxItems?: number;
   description?: string;
 }
@@ -48,12 +52,14 @@ export class BitbucketPaginator {
       next,
       params = {},
       defaultPagelen = BITBUCKET_DEFAULT_PAGELEN,
+      maxPagelen = BITBUCKET_MAX_PAGELEN,
       maxItems = BITBUCKET_ALL_ITEMS_CAP,
       description,
     } = options;
 
-    const resolvedPagelen = this.normalizePagelen(
-      pagelen ?? defaultPagelen
+    const resolvedPagelen = Math.min(
+      this.normalizePagelen(pagelen ?? defaultPagelen),
+      maxPagelen
     );
     const requestParams: Record<string, any> = {
       ...params,
@@ -217,6 +223,23 @@ export class BitbucketPaginator {
     }
     return Math.min(integer, BITBUCKET_MAX_PAGELEN);
   }
+}
+
+/** The pagelen and page arguments of a paginated tool, with the endpoint's pagelen cap. */
+export function paginationSchema(maxPagelen: number = BITBUCKET_MAX_PAGELEN) {
+  return {
+    pagelen: {
+      type: "number",
+      minimum: 1,
+      maximum: maxPagelen,
+      description: `Number of items per page (Bitbucket pagelen). Defaults to ${BITBUCKET_DEFAULT_PAGELEN} and caps at ${maxPagelen} on this endpoint.`,
+    },
+    page: {
+      type: "number",
+      minimum: 1,
+      description: "Bitbucket page number to fetch (1-based).",
+    },
+  };
 }
 
 export interface ValuesPage<T> {

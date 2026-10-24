@@ -3,6 +3,8 @@ import type { AxiosInstance } from "axios";
 import {
   BitbucketPaginator,
   BITBUCKET_MAX_PAGELEN,
+  BITBUCKET_PULL_REQUEST_MAX_PAGELEN,
+  paginationSchema,
   toPage,
 } from "../src/pagination.js";
 
@@ -54,6 +56,20 @@ describe("BitbucketPaginator", () => {
     expect(axios.get).toHaveBeenCalledWith("/test", {
       params: { pagelen: BITBUCKET_MAX_PAGELEN },
     });
+  });
+
+  it("caps pagelen to the endpoint's own maximum, since Bitbucket answers a larger one with 400", async () => {
+    const axios = createMockAxios();
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+
+    (axios.get as any).mockResolvedValue({ data: { values: [], pagelen: 50 } });
+
+    await paginator.fetchValues("/test", {
+      pagelen: 100,
+      maxPagelen: BITBUCKET_PULL_REQUEST_MAX_PAGELEN,
+    });
+
+    expect(axios.get).toHaveBeenCalledWith("/test", { params: { pagelen: 50 } });
   });
 
   it("follows next links when all=true", async () => {
@@ -203,5 +219,22 @@ describe("BitbucketPaginator next link", () => {
       "next must be a link returned by the Bitbucket API"
     );
     expect(axios.get).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("paginationSchema", () => {
+  it("states the endpoint's pagelen cap", () => {
+    const { pagelen, page } = paginationSchema(BITBUCKET_PULL_REQUEST_MAX_PAGELEN);
+
+    expect(pagelen).toMatchObject({ type: "number", minimum: 1, maximum: 50 });
+    expect(pagelen.description).toContain("caps at 50 on this endpoint");
+    expect(page).toMatchObject({ type: "number", minimum: 1 });
+  });
+
+  it("defaults to Bitbucket's general cap", () => {
+    expect(paginationSchema().pagelen).toMatchObject({ maximum: BITBUCKET_MAX_PAGELEN });
+    expect(paginationSchema().pagelen.description).toContain(
+      `caps at ${BITBUCKET_MAX_PAGELEN} on this endpoint`
+    );
   });
 });

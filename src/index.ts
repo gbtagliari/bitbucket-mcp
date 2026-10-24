@@ -15,8 +15,9 @@ import fs from "fs";
 import {
   BitbucketPaginator,
   BITBUCKET_ALL_ITEMS_CAP,
-  BITBUCKET_DEFAULT_PAGELEN,
   BITBUCKET_MAX_PAGELEN,
+  BITBUCKET_PULL_REQUEST_MAX_PAGELEN,
+  paginationSchema,
   toPage,
 } from "./pagination.js";
 import { describeError } from "./errors.js";
@@ -105,19 +106,9 @@ function getLogFilePath(): string | undefined {
 const resolvedLogFile = getLogFilePath();
 const logger = createLogger({ file: resolvedLogFile });
 
-const PAGINATION_BASE_SCHEMA = {
-  pagelen: {
-    type: "number",
-    minimum: 1,
-    maximum: BITBUCKET_MAX_PAGELEN,
-    description: `Number of items per page (Bitbucket pagelen). Defaults to ${BITBUCKET_DEFAULT_PAGELEN} and caps at ${BITBUCKET_MAX_PAGELEN}.`,
-  },
-  page: {
-    type: "number",
-    minimum: 1,
-    description: "Bitbucket page number to fetch (1-based).",
-  },
-};
+const PAGINATION_BASE_SCHEMA = paginationSchema();
+
+const PULL_REQUEST_PAGINATION_SCHEMA = paginationSchema(BITBUCKET_PULL_REQUEST_MAX_PAGELEN);
 
 const PAGINATION_ALL_SCHEMA = {
   type: "boolean",
@@ -662,7 +653,7 @@ class BitbucketServer {
                 description:
                   "Bitbucket Cloud only. The `next` link of a previous response. It carries the original filters, so the other filters are ignored.",
               },
-              ...PAGINATION_BASE_SCHEMA,
+              ...PULL_REQUEST_PAGINATION_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
               limit: LEGACY_LIMIT_SCHEMA,
             },
@@ -798,7 +789,7 @@ class BitbucketServer {
                 description: "Pull request ID",
               },
               fields: pageFieldsSchema("values.update.title,values.comment.content.raw"),
-              ...PAGINATION_BASE_SCHEMA,
+              ...PULL_REQUEST_PAGINATION_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -2555,6 +2546,7 @@ class BitbucketServer {
           ...paging,
           next,
           params: pullRequestListParams(filters),
+          maxPagelen: BITBUCKET_PULL_REQUEST_MAX_PAGELEN,
           description: "getPullRequests",
         }
       );
@@ -2742,6 +2734,7 @@ class BitbucketServer {
           page,
           all,
           params: { fields: listFields(fields, ACTIVITY_LIST_FIELDS) },
+          maxPagelen: BITBUCKET_PULL_REQUEST_MAX_PAGELEN,
           description: "getPullRequestActivity",
         }
       );
