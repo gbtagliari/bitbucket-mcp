@@ -9,7 +9,6 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance, AxiosError } from "axios";
-import winston from "winston";
 import os from "os";
 import path from "path";
 import fs from "fs";
@@ -22,6 +21,7 @@ import {
 } from "./pagination.js";
 import { describeError } from "./errors.js";
 import { createApiClient } from "./http.js";
+import { createLogger } from "./logging.js";
 import { withoutDeletedThreads } from "./comments.js";
 import { pullRequestListParams } from "./pull-requests.js";
 
@@ -84,13 +84,7 @@ function getLogFilePath(): string | undefined {
 }
 
 const resolvedLogFile = getLogFilePath();
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  transports: resolvedLogFile
-    ? [new winston.transports.File({ filename: resolvedLogFile })]
-    : [],
-});
+const logger = createLogger({ file: resolvedLogFile });
 
 const PAGINATION_BASE_SCHEMA = {
   pagelen: {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Security:** the log no longer records credentials. A logged axios error carried the request config, so `BITBUCKET_PASSWORD` (from the `auth` option) reached the log file in clear text. Every log entry now passes through a redactor that blanks secret keys and Basic/Bearer credentials, and the log file is created (or tightened) to mode `600`. Rotate any app password or token used with an earlier version, and delete its old log file.
 - Basic credentials (`BITBUCKET_USERNAME` + `BITBUCKET_PASSWORD`) now travel as an `Authorization` header. Axios dropped its `auth` option on redirects, so `getPullRequestDiffStat`, which Bitbucket answers with a same-host 302, failed with 404.
 - `getPullRequests` takes `q` (BBQL), `sort`, `fields` and `next`, and returns `{ values, page, pagelen, next }`. A default projection keeps each pull request small; a MERGED list returned megabytes before. Bitbucket ignores `state` once `q` is set, so the tool folds `state` into `q`.
 - Every tool error now carries the HTTP status, the request and Bitbucket's error message, detail and fields.
