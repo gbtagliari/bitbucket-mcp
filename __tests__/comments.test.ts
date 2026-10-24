@@ -1,4 +1,4 @@
-import { withoutDeletedThreads } from "../src/comments.js";
+import { publishSummary, withoutDeletedThreads } from "../src/comments.js";
 
 describe("withoutDeletedThreads", () => {
   it("keeps live comments untouched", () => {
@@ -66,5 +66,17 @@ describe("withoutDeletedThreads", () => {
 
   it("returns a non-array input unchanged", () => {
     expect(withoutDeletedThreads(undefined as never)).toBeUndefined();
+  });
+});
+
+describe("publishSummary", () => {
+  it("reports a full publish", () => {
+    expect(publishSummary(3, 3)).toBe("Published 3 of 3 pending comments");
+  });
+
+  it("flags the comments that failed to publish", () => {
+    expect(publishSummary(2, 3)).toBe(
+      "Published 2 of 3 pending comments; 1 failed, see results"
+    );
   });
 });

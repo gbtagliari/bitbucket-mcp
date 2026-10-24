@@ -22,7 +22,7 @@ import {
 import { describeError } from "./errors.js";
 import { createApiClient } from "./http.js";
 import { createLogger } from "./logging.js";
-import { withoutDeletedThreads } from "./comments.js";
+import { publishSummary, withoutDeletedThreads } from "./comments.js";
 import {
   type PullRequestListQuery,
   pullRequestListParams,
@@ -3492,6 +3492,12 @@ class BitbucketServer {
       // that publishes a draft. Reporting a success count here regardless of the outcome
       // told callers a review had been posted while every comment stayed invisible.
       if (published === 0) {
+        logger.error("No pending comment could be published", {
+          workspace,
+          repo_slug,
+          pull_request_id,
+          results: publishResults,
+        });
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to publish ${pendingComments.length} pending comment(s). ` +
@@ -3508,7 +3514,7 @@ class BitbucketServer {
             type: "text",
             text: JSON.stringify(
               {
-                message: `Published ${published} of ${pendingComments.length} pending comments`,
+                message: publishSummary(published, pendingComments.length),
                 results: publishResults,
               },
               null,

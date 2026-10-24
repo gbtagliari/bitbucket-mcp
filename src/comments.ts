@@ -52,3 +52,12 @@ export function withoutDeletedThreads<T>(comments: T[]): T[] {
       comment && comment.deleted !== true && !descendsFromDeletedRoot(comment)
   ) as T[];
 }
+
+/**
+ * A partial publish must not read as a full one: name the failures in the message itself.
+ */
+export function publishSummary(published: number, total: number): string {
+  const summary = `Published ${published} of ${total} pending comments`;
+  const failed = total - published;
+  return failed > 0 ? `${summary}; ${failed} failed, see results` : summary;
+}
