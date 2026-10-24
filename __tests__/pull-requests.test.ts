@@ -1,6 +1,7 @@
 import {
   PULL_REQUEST_LIST_FIELDS,
   pullRequestListParams,
+  pullRequestListQuery,
 } from "../src/pull-requests.js";
 
 describe("pullRequestListParams", () => {
@@ -76,5 +77,40 @@ describe("pullRequestListParams", () => {
     expect(pullRequestListParams({ fields: "+values.participants" }).fields).toBe(
       "+values.participants"
     );
+  });
+});
+
+describe("pullRequestListQuery", () => {
+  it("reads the filters from the tool arguments", () => {
+    expect(
+      pullRequestListQuery({
+        workspace: "ws",
+        state: "MERGED",
+        q: 'title ~ "x"',
+        sort: "-updated_on",
+        fields: "values.id",
+        next: "https://api.bitbucket.org/2.0/x?page=2",
+      })
+    ).toEqual({
+      state: "MERGED",
+      q: 'title ~ "x"',
+      sort: "-updated_on",
+      fields: "values.id",
+      next: "https://api.bitbucket.org/2.0/x?page=2",
+    });
+  });
+
+  it("leaves out the filters the caller did not pass", () => {
+    expect(pullRequestListQuery({ workspace: "ws" })).toEqual({});
+  });
+
+  it("rejects a state outside Bitbucket's pull request states", () => {
+    expect(() => pullRequestListQuery({ state: 'OPEN" OR state = "MERGED' })).toThrow(
+      "state must be one of OPEN, MERGED, DECLINED, SUPERSEDED"
+    );
+  });
+
+  it("rejects a filter that is not a string", () => {
+    expect(() => pullRequestListQuery({ q: 42 })).toThrow("q must be a string");
   });
 });

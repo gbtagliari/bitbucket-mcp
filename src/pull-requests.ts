@@ -1,7 +1,3 @@
-/**
- * Request shaping for the pull request list.
- */
-
 const PAGING_FIELDS = ["next", "page", "pagelen"];
 
 const USER_FIELDS = ["display_name", "uuid", "account_id"];
@@ -26,11 +22,48 @@ export const PULL_REQUEST_LIST_FIELDS = [
   ...PAGING_FIELDS,
 ].join(",");
 
+export const PULL_REQUEST_STATES = ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"] as const;
+
+export type PullRequestState = (typeof PULL_REQUEST_STATES)[number];
+
 export interface PullRequestListFilters {
-  state?: string;
+  state?: PullRequestState;
   q?: string;
   sort?: string;
   fields?: string;
+}
+
+export interface PullRequestListQuery extends PullRequestListFilters {
+  next?: string;
+}
+
+const optionalString = (args: Record<string, unknown>, name: string) => {
+  const value = args[name];
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") throw new Error(`${name} must be a string`);
+  return value;
+};
+
+/**
+ * The tool schema is advisory: the client may send anything. `state` is quoted into a BBQL
+ * query, so it must be one of the states and nothing else.
+ */
+export function pullRequestListQuery(
+  args: Record<string, unknown>
+): PullRequestListQuery {
+  const query: PullRequestListQuery = {};
+  const state = optionalString(args, "state");
+  if (state !== undefined) {
+    if (!PULL_REQUEST_STATES.includes(state as PullRequestState)) {
+      throw new Error(`state must be one of ${PULL_REQUEST_STATES.join(", ")}`);
+    }
+    query.state = state as PullRequestState;
+  }
+  for (const name of ["q", "sort", "fields", "next"] as const) {
+    const value = optionalString(args, name);
+    if (value !== undefined) query[name] = value;
+  }
+  return query;
 }
 
 /**

@@ -23,7 +23,11 @@ import { describeError } from "./errors.js";
 import { createApiClient } from "./http.js";
 import { createLogger } from "./logging.js";
 import { withoutDeletedThreads } from "./comments.js";
-import { pullRequestListParams } from "./pull-requests.js";
+import {
+  type PullRequestListQuery,
+  pullRequestListParams,
+  pullRequestListQuery,
+} from "./pull-requests.js";
 
 // =========== LOGGER SETUP ==========
 // File-based logging with sensible defaults and ability to disable
@@ -1919,22 +1923,24 @@ class BitbucketServer {
               args.workspace as string,
               args.repo_slug as string
             );
-          case "getPullRequests":
+          case "getPullRequests": {
+            let query: PullRequestListQuery;
+            try {
+              query = pullRequestListQuery(args);
+            } catch (error) {
+              throw new McpError(ErrorCode.InvalidParams, describeError(error));
+            }
             return await this.getPullRequests(
               args.workspace as string,
               args.repo_slug as string,
-              args.state as "OPEN" | "MERGED" | "DECLINED" | "SUPERSEDED",
-              args.pagelen as number,
-              args.page as number,
-              args.all as boolean,
-              args.limit as number,
+              query,
               {
-                q: args.q as string | undefined,
-                sort: args.sort as string | undefined,
-                fields: args.fields as string | undefined,
-                next: args.next as string | undefined,
+                pagelen: (args.pagelen ?? args.limit) as number | undefined,
+                page: args.page as number | undefined,
+                all: args.all as boolean | undefined,
               }
             );
+          }
           case "createPullRequest":
             return await this.createPullRequest(
               args.workspace as string,
@@ -2433,33 +2439,24 @@ class BitbucketServer {
   async getPullRequests(
     workspace: string,
     repo_slug: string,
-    state?: "OPEN" | "MERGED" | "DECLINED" | "SUPERSEDED",
-    pagelen?: number,
-    page?: number,
-    all?: boolean,
-    legacyLimit?: number,
-    options: { q?: string; sort?: string; fields?: string; next?: string } = {}
+    query: PullRequestListQuery = {},
+    paging: { pagelen?: number; page?: number; all?: boolean } = {}
   ) {
     try {
       logger.info("Getting Bitbucket pull requests", {
         workspace,
         repo_slug,
-        state,
-        pagelen: pagelen ?? legacyLimit,
-        page,
-        all,
-        ...options,
+        ...query,
+        ...paging,
       });
 
-      const { next, ...filters } = options;
+      const { next, ...filters } = query;
       const result = await this.paginator.fetchValues<BitbucketPullRequest>(
         `/repositories/${workspace}/${repo_slug}/pullrequests`,
         {
-          pagelen: pagelen ?? legacyLimit,
-          page,
-          all,
+          ...paging,
           next,
-          params: pullRequestListParams({ state, ...filters }),
+          params: pullRequestListParams(filters),
           description: "getPullRequests",
         }
       );
