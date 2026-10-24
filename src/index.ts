@@ -21,6 +21,7 @@ import {
 } from "./pagination.js";
 import { describeError } from "./errors.js";
 import { createApiClient } from "./http.js";
+import { fieldsArgument } from "./fields.js";
 import { createLogger } from "./logging.js";
 import { publishSummary, withoutDeletedThreads } from "./comments.js";
 import {
@@ -28,6 +29,7 @@ import {
   pullRequestCreateBody,
   pullRequestListParams,
   pullRequestListQuery,
+  pullRequestParams,
   pullRequestUpdateBody,
   uniquePullRequests,
   updatePullRequest,
@@ -114,6 +116,18 @@ const PAGINATION_ALL_SCHEMA = {
   type: "boolean",
   description: `When true (and no page is provided), automatically follows Bitbucket next links to return all items up to ${BITBUCKET_ALL_ITEMS_CAP}.`,
 };
+
+/** `fields` on a tool that returns one object. */
+const objectFieldsSchema = (example: string) => ({
+  type: "string",
+  description: `Bitbucket partial-response selector that replaces the default projection, e.g. \`${example}\`. \`+x\` adds to Bitbucket's full object instead.`,
+});
+
+/** `fields` on a tool that returns a page: item fields take the \`values.\` prefix. */
+const pageFieldsSchema = (example: string) => ({
+  type: "string",
+  description: `Bitbucket partial-response selector that replaces the default projection, e.g. \`${example}\`. Paths start at the page, so item fields take the \`values.\` prefix; the paging keys are kept. \`+values.x\` adds to Bitbucket's full objects instead.`,
+});
 
 const LEGACY_LIMIT_SCHEMA = {
   type: "number",
@@ -635,11 +649,7 @@ class BitbucketServer {
                 description:
                   "Field to sort by; prefix `-` for descending, e.g. `-updated_on`.",
               },
-              fields: {
-                type: "string",
-                description:
-                  "Bitbucket partial-response selector that replaces the default projection, e.g. `values.id,values.title,values.participants`. Paths start at the page, so pull request fields take the `values.` prefix. `+values.x` adds to Bitbucket's full objects instead.",
-              },
+              fields: pageFieldsSchema("values.id,values.title,values.participants"),
               next: {
                 type: "string",
                 description:
@@ -704,7 +714,8 @@ class BitbucketServer {
         },
         {
           name: "getPullRequest",
-          description: "Get details for a specific pull request",
+          description:
+            "Get details for a specific pull request. Returns a slim default projection: the `getPullRequests` fields plus `description`, `participants` (user, role, approved, state) and `close_source_branch`; `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -717,6 +728,7 @@ class BitbucketServer {
                 type: "string",
                 description: "Pull request ID",
               },
+              fields: objectFieldsSchema("id,merge_commit.hash"),
               ...PAGINATION_BASE_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
             },
@@ -2013,7 +2025,8 @@ class BitbucketServer {
             return await this.getPullRequest(
               args.workspace as string,
               args.repo_slug as string,
-              args.pull_request_id as string
+              args.pull_request_id as string,
+              validArguments(() => fieldsArgument(args))
             );
           case "updatePullRequest":
             return await this.updatePullRequest(
@@ -2589,17 +2602,20 @@ class BitbucketServer {
   async getPullRequest(
     workspace: string,
     repo_slug: string,
-    pull_request_id: string
+    pull_request_id: string,
+    fields?: string
   ) {
     try {
       logger.info("Getting Bitbucket pull request details", {
         workspace,
         repo_slug,
         pull_request_id,
+        fields,
       });
 
       const response = await this.api.get(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`
+        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`,
+        { params: pullRequestParams(fields) }
       );
 
       return {

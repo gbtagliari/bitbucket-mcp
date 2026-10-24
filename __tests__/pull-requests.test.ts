@@ -1,5 +1,7 @@
 import {
+  PULL_REQUEST_FIELDS,
   PULL_REQUEST_LIST_FIELDS,
+  pullRequestParams,
   pullRequestCreateBody,
   pullRequestListParams,
   pullRequestUpdateBody,
@@ -80,6 +82,45 @@ describe("pullRequestListParams", () => {
     expect(pullRequestListParams({ fields: "+values.participants" }).fields).toBe(
       "+values.participants"
     );
+  });
+});
+
+describe("pullRequestParams", () => {
+  it("projects one pull request onto the list fields plus the detail its readers need", () => {
+    const fields = pullRequestParams().fields.split(",");
+
+    expect(fields).toEqual([
+      "id",
+      "title",
+      "state",
+      "author.display_name",
+      "author.uuid",
+      "author.account_id",
+      "reviewers.display_name",
+      "reviewers.uuid",
+      "reviewers.account_id",
+      "source.branch.name",
+      "destination.branch.name",
+      "source.commit.hash",
+      "created_on",
+      "updated_on",
+      "links.html.href",
+      "description",
+      "participants.user.display_name",
+      "participants.user.uuid",
+      "participants.user.account_id",
+      "participants.role",
+      "participants.approved",
+      "participants.state",
+      "close_source_branch",
+    ]);
+    expect(PULL_REQUEST_FIELDS).toBe(fields.join(","));
+  });
+
+  it("lets the caller's fields replace the default as given", () => {
+    expect(pullRequestParams("id,merge_commit.hash")).toEqual({
+      fields: "id,merge_commit.hash",
+    });
   });
 });
 

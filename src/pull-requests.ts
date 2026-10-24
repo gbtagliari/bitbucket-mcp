@@ -1,28 +1,45 @@
 import type { AxiosInstance } from "axios";
+import { listFields, pageFields, userFields } from "./fields.js";
 
-const PAGING_FIELDS = ["next", "page", "pagelen"];
-
-const USER_FIELDS = ["display_name", "uuid", "account_id"];
+/** What every reader of a pull request takes from it, in a list or alone. */
+const PULL_REQUEST_SUMMARY_FIELDS = [
+  "id",
+  "title",
+  "state",
+  ...userFields("author"),
+  ...userFields("reviewers"),
+  "source.branch.name",
+  "destination.branch.name",
+  "source.commit.hash",
+  "created_on",
+  "updated_on",
+  "links.html.href",
+];
 
 /**
  * The full pull request objects run to megabytes on a MERGED list, so the list returns only
- * what its consumers read. Bitbucket drops every key a `fields` whitelist leaves out, so the
- * paging keys are listed too.
+ * what its consumers read.
  */
-export const PULL_REQUEST_LIST_FIELDS = [
-  "values.id",
-  "values.title",
-  "values.state",
-  ...USER_FIELDS.map((field) => `values.author.${field}`),
-  ...USER_FIELDS.map((field) => `values.reviewers.${field}`),
-  "values.source.branch.name",
-  "values.destination.branch.name",
-  "values.source.commit.hash",
-  "values.created_on",
-  "values.updated_on",
-  "values.links.html.href",
-  ...PAGING_FIELDS,
+export const PULL_REQUEST_LIST_FIELDS = pageFields(PULL_REQUEST_SUMMARY_FIELDS);
+
+/**
+ * One pull request adds what a review reads: the description, who approved, and whether the
+ * source branch closes on merge. The full object is about six times larger.
+ */
+export const PULL_REQUEST_FIELDS = [
+  ...PULL_REQUEST_SUMMARY_FIELDS,
+  "description",
+  ...userFields("participants.user"),
+  "participants.role",
+  "participants.approved",
+  "participants.state",
+  "close_source_branch",
 ].join(",");
+
+/** A single object has no paging keys, so a caller's fields go as given. */
+export const pullRequestParams = (fields?: string): { fields: string } => ({
+  fields: fields ?? PULL_REQUEST_FIELDS,
+});
 
 export const PULL_REQUEST_STATES = ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"] as const;
 
@@ -81,22 +98,6 @@ export function pullRequestListQuery(
   return query;
 }
 
-/**
- * A caller's whitelist would drop `next` and hide the later pages, so the paging keys are
- * added to it. Relative fields (`+x`, `-x`) build on Bitbucket's defaults, which keep them.
- */
-const withPagingFields = (fields: string): string => {
-  const entries = fields
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  if (entries.some((entry) => entry.startsWith("+") || entry.startsWith("-"))) {
-    return entries.join(",");
-  }
-  const missing = PAGING_FIELDS.filter((field) => !entries.includes(field));
-  return [...entries, ...missing].join(",");
-};
-
 export function pullRequestListParams(
   filters: PullRequestListFilters
 ): Record<string, string> {
@@ -110,9 +111,7 @@ export function pullRequestListParams(
     params.state = filters.state;
   }
   if (filters.sort) params.sort = filters.sort;
-  params.fields = filters.fields
-    ? withPagingFields(filters.fields)
-    : PULL_REQUEST_LIST_FIELDS;
+  params.fields = listFields(filters.fields, PULL_REQUEST_LIST_FIELDS);
   return params;
 }
 
