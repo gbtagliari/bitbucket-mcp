@@ -19,6 +19,7 @@ import {
   BITBUCKET_DEFAULT_PAGELEN,
   BITBUCKET_MAX_PAGELEN,
 } from "./pagination.js";
+import { describeError } from "./errors.js";
 
 // =========== LOGGER SETUP ==========
 // File-based logging with sensible defaults and ability to disable
@@ -2285,9 +2286,7 @@ class BitbucketServer {
         if (axios.isAxiosError(error)) {
           throw new McpError(
             ErrorCode.InternalError,
-            `Bitbucket API error: ${
-              error.response?.data.message ?? error.message
-            }`
+            `Bitbucket API error: ${describeError(error)}`
           );
         }
         throw error;
@@ -2350,9 +2349,7 @@ class BitbucketServer {
       logger.error("Error listing repositories", { error, workspace, name });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to list repositories: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to list repositories: ${describeError(error)}`
       );
     }
   }
@@ -2380,9 +2377,7 @@ class BitbucketServer {
       logger.error("Error getting repository", { error, workspace, repo_slug });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get repository: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get repository: ${describeError(error)}`
       );
     }
   }
@@ -2414,9 +2409,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get effective default reviewers: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get effective default reviewers: ${describeError(error)}`
       );
     }
   }
@@ -2472,9 +2465,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull requests: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull requests: ${describeError(error)}`
       );
     }
   }
@@ -2563,9 +2554,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to create pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to create pull request: ${describeError(error)}`
       );
     }
   }
@@ -2603,9 +2592,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request details: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request details: ${describeError(error)}`
       );
     }
   }
@@ -2651,9 +2638,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update pull request: ${describeError(error)}`
       );
     }
   }
@@ -2703,9 +2688,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request activity: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request activity: ${describeError(error)}`
       );
     }
   }
@@ -2746,9 +2729,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to approve pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to approve pull request: ${describeError(error)}`
       );
     }
   }
@@ -2786,9 +2767,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to unapprove pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to unapprove pull request: ${describeError(error)}`
       );
     }
   }
@@ -2831,9 +2810,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to decline pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to decline pull request: ${describeError(error)}`
       );
     }
   }
@@ -2880,9 +2857,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to merge pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to merge pull request: ${describeError(error)}`
       );
     }
   }
@@ -2932,9 +2907,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request comments: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request comments: ${describeError(error)}`
       );
     }
   }
@@ -2988,9 +2961,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request diff: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request diff: ${describeError(error)}`
       );
     }
   }
@@ -3040,9 +3011,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request commits: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request commits: ${describeError(error)}`
       );
     }
   }
@@ -3119,9 +3088,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to add pull request comment: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to add pull request comment: ${describeError(error)}`
       );
     }
   }
@@ -3153,9 +3120,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get repository branching model: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get repository branching model: ${describeError(error)}`
       );
     }
   }
@@ -3190,9 +3155,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get repository branching model settings: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get repository branching model settings: ${describeError(error)}`
       );
     }
   }
@@ -3240,9 +3203,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update repository branching model settings: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update repository branching model settings: ${describeError(error)}`
       );
     }
   }
@@ -3277,9 +3238,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get effective repository branching model: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get effective repository branching model: ${describeError(error)}`
       );
     }
   }
@@ -3311,9 +3270,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get project branching model: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get project branching model: ${describeError(error)}`
       );
     }
   }
@@ -3348,9 +3305,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get project branching model settings: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get project branching model settings: ${describeError(error)}`
       );
     }
   }
@@ -3398,9 +3353,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update project branching model settings: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update project branching model settings: ${describeError(error)}`
       );
     }
   }
@@ -3438,9 +3391,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to add pending pull request comment: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to add pending pull request comment: ${describeError(error)}`
       );
     }
   }
@@ -3511,7 +3462,7 @@ class BitbucketServer {
           publishResults.push({
             commentId: comment.id,
             status: "error",
-            error: error instanceof Error ? error.message : String(error),
+            error: describeError(error),
           });
         }
       }
@@ -3540,9 +3491,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to publish pending comments: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to publish pending comments: ${describeError(error)}`
       );
     }
   }
@@ -3584,9 +3533,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to create draft pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to create draft pull request: ${describeError(error)}`
       );
     }
   }
@@ -3628,9 +3575,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to publish draft pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to publish draft pull request: ${describeError(error)}`
       );
     }
   }
@@ -3672,9 +3617,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to convert pull request to draft: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to convert pull request to draft: ${describeError(error)}`
       );
     }
   }
@@ -3869,9 +3812,7 @@ class BitbucketServer {
       logger.error("Error getting pending review PRs:", error);
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pending review PRs: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pending review PRs: ${describeError(error)}`
       );
     }
   }
@@ -3942,9 +3883,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to list pipeline runs: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to list pipeline runs: ${describeError(error)}`
       );
     }
   }
@@ -3982,9 +3921,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pipeline run: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pipeline run: ${describeError(error)}`
       );
     }
   }
@@ -4063,9 +4000,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to run pipeline: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to run pipeline: ${describeError(error)}`
       );
     }
   }
@@ -4106,9 +4041,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to stop pipeline: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to stop pipeline: ${describeError(error)}`
       );
     }
   }
@@ -4158,9 +4091,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pipeline steps: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pipeline steps: ${describeError(error)}`
       );
     }
   }
@@ -4201,9 +4132,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pipeline step: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pipeline step: ${describeError(error)}`
       );
     }
   }
@@ -4346,9 +4275,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pipeline step logs: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pipeline step logs: ${describeError(error)}`
       );
     }
   }
@@ -4389,9 +4316,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request comment: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request comment: ${describeError(error)}`
       );
     }
   }
@@ -4433,9 +4358,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update pull request comment: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update pull request comment: ${describeError(error)}`
       );
     }
   }
@@ -4471,9 +4394,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to delete pull request comment: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to delete pull request comment: ${describeError(error)}`
       );
     }
   }
@@ -4564,9 +4485,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update comment resolved state: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update comment resolved state: ${describeError(error)}`
       );
     }
   }
@@ -4613,9 +4532,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request diffstat: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request diffstat: ${describeError(error)}`
       );
     }
   }
@@ -4651,9 +4568,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request patch: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request patch: ${describeError(error)}`
       );
     }
   }
@@ -4700,9 +4615,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request tasks: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request tasks: ${describeError(error)}`
       );
     }
   }
@@ -4745,9 +4658,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to create pull request task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to create pull request task: ${describeError(error)}`
       );
     }
   }
@@ -4783,9 +4694,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request task: ${describeError(error)}`
       );
     }
   }
@@ -4827,9 +4736,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to update pull request task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to update pull request task: ${describeError(error)}`
       );
     }
   }
@@ -4863,9 +4770,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to delete pull request task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to delete pull request task: ${describeError(error)}`
       );
     }
   }
@@ -4922,9 +4827,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get pull request statuses: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to get pull request statuses: ${describeError(error)}`
       );
     }
   }
