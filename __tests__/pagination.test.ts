@@ -168,6 +168,30 @@ describe("BitbucketPaginator next link", () => {
     expect(axios.get).not.toHaveBeenCalled();
   });
 
+  it("accepts a next link whose host differs only in letter case", async () => {
+    const axios = createMockAxios();
+    (axios as any).defaults.baseURL = "https://API.bitbucket.org/2.0/";
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+    const next = "https://api.bitbucket.org/2.0/x?page=2";
+    (axios.get as any).mockResolvedValue({ data: { values: [] } });
+
+    await paginator.fetchValues("/x", { next });
+
+    expect(axios.get).toHaveBeenCalledWith(next, undefined);
+  });
+
+  it("refuses a next link on the right host under another path", async () => {
+    const axios = createMockAxios();
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+
+    await expect(
+      paginator.fetchValues("/x", { next: "https://api.bitbucket.org/2.0evil/x" })
+    ).rejects.toThrow("next must be a link returned by the Bitbucket API");
+    await expect(
+      paginator.fetchValues("/x", { next: "https://u:p@api.bitbucket.org/2.0/x" })
+    ).rejects.toThrow("next must be a link returned by the Bitbucket API");
+  });
+
   it("stops following pages when a response links outside the configured API", async () => {
     const axios = createMockAxios();
     const paginator = new BitbucketPaginator(axios, createMockLogger());

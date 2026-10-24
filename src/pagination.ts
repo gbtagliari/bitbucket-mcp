@@ -156,8 +156,25 @@ export class BitbucketPaginator {
    * the configured API and never at another host.
    */
   private checkedNextLink(next: string): string {
-    const base = (this.api.defaults?.baseURL ?? "").replace(/\/+$/, "");
-    if (!base || !next.startsWith(`${base}/`)) {
+    const base = this.api.defaults?.baseURL ?? "";
+    const parse = (value: string) => {
+      try {
+        return new URL(value);
+      } catch {
+        return null;
+      }
+    };
+    const baseUrl = parse(base);
+    const nextUrl = parse(next);
+    const basePath = baseUrl ? baseUrl.pathname.replace(/\/+$/, "") : "";
+    if (
+      !baseUrl ||
+      !nextUrl ||
+      nextUrl.origin !== baseUrl.origin ||
+      nextUrl.username !== "" ||
+      nextUrl.password !== "" ||
+      !nextUrl.pathname.startsWith(`${basePath}/`)
+    ) {
       throw new Error(
         `next must be a link returned by the Bitbucket API (${base || "no base URL"})`
       );
