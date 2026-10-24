@@ -1,12 +1,13 @@
 import { PIPELINE_LIST_FIELDS, pipelineListParams } from "../src/pipelines.js";
 
 describe("pipelineListParams", () => {
-  it("projects each run onto its number, state, target and times, and keeps the paging keys", () => {
+  it("projects each run onto its number, state, target kind and ref, and times, and keeps the paging keys", () => {
     expect(pipelineListParams({}).fields.split(",")).toEqual([
       "values.uuid",
       "values.build_number",
       "values.state.name",
       "values.state.result.name",
+      "values.target.type",
       "values.target.ref_name",
       "values.target.commit.hash",
       "values.created_on",
@@ -18,7 +19,7 @@ describe("pipelineListParams", () => {
     expect(pipelineListParams({}).fields).toBe(PIPELINE_LIST_FIELDS);
   });
 
-  it("filters by branch through target.branch, which Bitbucket matches against target.ref_name", () => {
+  it("filters by branch through target.branch, which matches a branch run by target.ref_name and a pull request run by its source branch", () => {
     expect(pipelineListParams({ target_branch: "packers", sort: "-created_on" })).toEqual({
       "target.branch": "packers",
       sort: "-created_on",

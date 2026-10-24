@@ -1414,7 +1414,7 @@ class BitbucketServer {
         {
           name: "listPipelineRuns",
           description:
-            "List pipeline runs for a repository. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page. Each run carries a slim default projection (uuid, build_number, state.name, state.result.name, target.ref_name, target.commit.hash, created_on, completed_on); `fields` overrides it.",
+            "List pipeline runs for a repository. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page. Each run carries a slim default projection (uuid, build_number, state.name, state.result.name, target.type, target.ref_name, target.commit.hash, created_on, completed_on); `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1441,7 +1441,7 @@ class BitbucketServer {
               target_branch: {
                 type: "string",
                 description:
-                  "Filter by the branch a run built (`target.ref_name`). A pull request run has no branch name and never matches. The endpoint ignores a BBQL `q`, so this is the branch filter.",
+                  "Filter by branch. A branch run matches on the branch it built (`target.ref_name`); a pull request run matches on its source branch, so filtering `desenv` returns the runs of PRs from `desenv` when the branch itself has no pipeline. Read `target.type` to tell them apart (`pipeline_ref_target` vs `pipeline_pullrequest_target`). The endpoint ignores a BBQL `q`, so this is the branch filter.",
               },
               trigger_type: {
                 type: "string",

@@ -2,13 +2,15 @@ import { listFields, pageFields } from "./fields.js";
 
 /**
  * A run carries its repository, creator, trigger and links; a CI check reads the number, the
- * result, the branch and the commit. A pull request run has no `target.ref_name`.
+ * result, the target kind, the branch and the commit. A pull request run has no `target.ref_name`;
+ * `target.type` tells it from a branch run.
  */
 export const PIPELINE_LIST_FIELDS = pageFields([
   "uuid",
   "build_number",
   "state.name",
   "state.result.name",
+  "target.type",
   "target.ref_name",
   "target.commit.hash",
   "created_on",
@@ -25,7 +27,8 @@ export interface PipelineListFilters {
 
 /**
  * The pipelines endpoint ignores a `q` filter and returns every run, so the branch filter is
- * its own parameter, which Bitbucket matches against `target.ref_name`.
+ * its own parameter. Bitbucket matches a branch run by `target.ref_name` and a pull request run
+ * by its source branch.
  */
 export function pipelineListParams(filters: PipelineListFilters): Record<string, string> {
   const params: Record<string, string> = {};

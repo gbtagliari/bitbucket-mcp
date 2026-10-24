@@ -83,8 +83,10 @@ other tools. Exit: tag `v5.0.7-edm.3`.
 Found live during Phase 3 (aioriash/edm-webservices, PR #3361):
 
 - The pipelines endpoint ignores `q` and returns every run. Item 13 exposes no `q`.
-  `target_branch` (query `target.branch`) matches `target.ref_name`. A pull request run has
-  no `ref_name`.
+  `target_branch` (query `target.branch`) matches a branch run by `target.ref_name` and a pull
+  request run by its source branch. A pull request run has no `ref_name`. Found in the v5.0.7-edm.3
+  smoke: `desenv` has no branch pipeline, so `target_branch: desenv` returns PR runs from `desenv`.
+  The default projection now carries `target.type` to tell the two apart.
 - The comment list returns `resolution: {}`. Item 10 asks for `resolution.type`,
   `resolution.user` and `resolution.created_on`; the key still appears only on a resolved root.
 - The PR list and the activity log return HTTP 400 above `pagelen` 50. Comments, commits and
