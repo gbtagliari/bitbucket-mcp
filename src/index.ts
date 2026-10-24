@@ -327,7 +327,7 @@ interface BitbucketConfig {
 
 // Normalize Bitbucket configuration for backward compatibility and DX
 function normalizeBitbucketConfig(rawConfig: BitbucketConfig): BitbucketConfig {
-  let normalizedConfig = { ...rawConfig };
+  const normalizedConfig = { ...rawConfig };
   try {
     const parsed = new URL(rawConfig.baseUrl);
     const host = parsed.hostname.toLowerCase();
