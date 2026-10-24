@@ -102,6 +102,6 @@ After each tag, update in this order:
 ## Progress
 
 - [x] Phase 1 (local commits on `plan`; tag and install pending)
-- [x] Phase 2 (local commits on `plan`; the live write check, tag and install pending)
+- [x] Phase 2 (local commits on `plan`, checked live on PRs #3395 and #3396; tag and install pending)
 - [ ] Phase 3
 - [ ] Consumers
