@@ -21,6 +21,7 @@ import {
   toPage,
 } from "./pagination.js";
 import { describeError } from "./errors.js";
+import { createApiClient } from "./http.js";
 import { withoutDeletedThreads } from "./comments.js";
 import { pullRequestListParams } from "./pull-requests.js";
 
@@ -552,19 +553,7 @@ class BitbucketServer {
       );
     }
 
-    // Setup Axios instance
-    const headers: Record<string, string> = {};
-    if (this.config.token) {
-      headers.Authorization = `Bearer ${this.config.token}`;
-    }
-    this.api = axios.create({
-      baseURL: this.config.baseUrl,
-      headers,
-      auth:
-        this.config.username && this.config.password
-          ? { username: this.config.username, password: this.config.password }
-          : undefined,
-    });
+    this.api = createApiClient(this.config);
 
     this.paginator = new BitbucketPaginator(this.api, logger);
 

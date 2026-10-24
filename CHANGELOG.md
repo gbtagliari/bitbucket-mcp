@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Basic credentials (`BITBUCKET_USERNAME` + `BITBUCKET_PASSWORD`) now travel as an `Authorization` header. Axios dropped its `auth` option on redirects, so `getPullRequestDiffStat`, which Bitbucket answers with a same-host 302, failed with 404.
 - `getPullRequests` takes `q` (BBQL), `sort`, `fields` and `next`, and returns `{ values, page, pagelen, next }`. A default projection keeps each pull request small; a MERGED list returned megabytes before. Bitbucket ignores `state` once `q` is set, so the tool folds `state` into `q`.
 - Every tool error now carries the HTTP status, the request and Bitbucket's error message, detail and fields.
 - `getPullRequestComments` now returns `{ values, page, pagelen, next }`. It previously returned only the first 10 comments and dropped the `next` link, so callers had no way to tell that a review thread had been truncated. One page stays the default; `all: true` fetches every page.
