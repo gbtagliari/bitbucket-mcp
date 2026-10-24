@@ -40,6 +40,7 @@ import {
   uniquePullRequests,
   updatePullRequest,
 } from "./pull-requests.js";
+import { pipelineListParams } from "./pipelines.js";
 import { removeChangeRequest, requestChanges } from "./reviews.js";
 import { isDangerousTool } from "./safety.js";
 
@@ -1417,7 +1418,8 @@ class BitbucketServer {
         },
         {
           name: "listPipelineRuns",
-          description: "List pipeline runs for a repository",
+          description:
+            "List pipeline runs for a repository. Each run carries a slim default projection (uuid, build_number, state.name, state.result.name, target.ref_name, target.commit.hash, created_on, completed_on); `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1443,7 +1445,8 @@ class BitbucketServer {
               },
               target_branch: {
                 type: "string",
-                description: "Filter pipelines by target branch",
+                description:
+                  "Filter by the branch a run built (`target.ref_name`). A pull request run has no branch name and never matches. The endpoint ignores a BBQL `q`, so this is the branch filter.",
               },
               trigger_type: {
                 type: "string",
@@ -1455,6 +1458,7 @@ class BitbucketServer {
                 description:
                   "Field to sort by. Prefix with '-' for descending order. Supported fields: created_on, creator.uuid. Example: '-created_on' for newest first.",
               },
+              fields: pageFieldsSchema("values.build_number,values.trigger.name"),
             },
             required: ["workspace", "repo_slug"],
           },
@@ -2225,7 +2229,8 @@ class BitbucketServer {
                 | "pullrequest"
                 | "schedule",
               args.limit as number,
-              args.sort as string
+              args.sort as string,
+              validArguments(() => fieldsArgument(args))
             );
           case "getPipelineRun":
             return await this.getPipelineRun(
@@ -3964,7 +3969,8 @@ class BitbucketServer {
     target_branch?: string,
     trigger_type?: "manual" | "push" | "pullrequest" | "schedule",
     legacyLimit?: number,
-    sort?: string
+    sort?: string,
+    fields?: string
   ) {
     try {
       logger.info("Listing pipeline runs", {
@@ -3977,13 +3983,16 @@ class BitbucketServer {
         target_branch,
         trigger_type,
         sort,
+        fields,
       });
 
-      const params: Record<string, any> = {};
-      if (status) params.status = status;
-      if (target_branch) params["target.branch"] = target_branch;
-      if (trigger_type) params.trigger_type = trigger_type;
-      if (sort) params.sort = sort;
+      const params = pipelineListParams({
+        status,
+        target_branch,
+        trigger_type,
+        sort,
+        fields,
+      });
 
       const result = await this.paginator.fetchValues(
         `/repositories/${workspace}/${repo_slug}/pipelines`,
