@@ -23,7 +23,11 @@ import { describeError } from "./errors.js";
 import { createApiClient } from "./http.js";
 import { fieldsArgument } from "./fields.js";
 import { createLogger } from "./logging.js";
-import { publishSummary, withoutDeletedThreads } from "./comments.js";
+import {
+  commentListFields,
+  publishSummary,
+  withoutDeletedThreads,
+} from "./comments.js";
 import {
   type PullRequestListQuery,
   pullRequestCreateBody,
@@ -919,7 +923,7 @@ class BitbucketServer {
         {
           name: "getPullRequestComments",
           description:
-            "List comments on a pull request. Returns one page with `values` and, when more comments exist, `next`; pass `page` for a later page or `all: true` for every page. Omits deleted comments and their replies.",
+            "List comments on a pull request. Returns one page with `values` and, when more comments exist, `next`; pass `page` for a later page or `all: true` for every page. Omits deleted comments and their replies. Each comment carries a slim default projection (id, parent.id, inline, resolution, deleted, pending, user, content.raw, created_on, links.html.href); `resolution` is present only on the root of a resolved thread. `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -932,6 +936,7 @@ class BitbucketServer {
                 type: "string",
                 description: "Pull request ID",
               },
+              fields: pageFieldsSchema("values.id,values.content.html"),
               ...PAGINATION_BASE_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
             },
@@ -2090,7 +2095,8 @@ class BitbucketServer {
               args.pull_request_id as string,
               args.pagelen as number,
               args.page as number,
-              args.all as boolean
+              args.all as boolean,
+              validArguments(() => fieldsArgument(args))
             );
           case "getPullRequestDiff":
             return await this.getPullRequestDiff(
@@ -2986,7 +2992,8 @@ class BitbucketServer {
     pull_request_id: string,
     pagelen?: number,
     page?: number,
-    all?: boolean
+    all?: boolean,
+    fields?: string
   ) {
     try {
       logger.info("Getting Bitbucket pull request comments", {
@@ -2996,6 +3003,7 @@ class BitbucketServer {
         pagelen,
         page,
         all,
+        fields,
       });
 
       const result = await this.paginator.fetchValues(
@@ -3004,6 +3012,7 @@ class BitbucketServer {
           pagelen,
           page,
           all,
+          params: { fields: commentListFields(fields) },
           description: "getPullRequestComments",
         }
       );

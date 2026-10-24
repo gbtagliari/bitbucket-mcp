@@ -2,6 +2,36 @@
  * Helpers for Bitbucket pull request comment collections.
  */
 
+import { PAGING_FIELDS, pageFields, userFields, withFields } from "./fields.js";
+
+/**
+ * What a thread rebuild reads: the parent chain, the inline anchor, who resolved it and the
+ * raw text. A comment carries `resolution` only once its thread is resolved. The full page
+ * is about three times larger, mostly the rendered HTML and the links.
+ */
+export const COMMENT_LIST_FIELDS = pageFields([
+  "id",
+  "parent.id",
+  "inline.path",
+  "inline.from",
+  "inline.to",
+  "resolution.type",
+  ...userFields("resolution.user"),
+  "resolution.created_on",
+  "deleted",
+  "pending",
+  ...userFields("user"),
+  "content.raw",
+  "created_on",
+  "links.html.href",
+]);
+
+/** withoutDeletedThreads reads these keys, so a caller's whitelist keeps them. */
+const THREAD_FIELDS = ["values.id", "values.parent.id", "values.deleted"];
+
+export const commentListFields = (fields?: string): string =>
+  fields ? withFields(fields, [...THREAD_FIELDS, ...PAGING_FIELDS]) : COMMENT_LIST_FIELDS;
+
 type MaybeComment = {
   id?: number | string;
   deleted?: boolean;

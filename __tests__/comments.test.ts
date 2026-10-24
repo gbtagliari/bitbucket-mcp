@@ -1,4 +1,50 @@
-import { publishSummary, withoutDeletedThreads } from "../src/comments.js";
+import {
+  COMMENT_LIST_FIELDS,
+  commentListFields,
+  publishSummary,
+  withoutDeletedThreads,
+} from "../src/comments.js";
+
+describe("commentListFields", () => {
+  it("projects each comment onto what a thread rebuild reads, and keeps the paging keys", () => {
+    const fields = commentListFields().split(",");
+
+    expect(fields).toEqual([
+      "values.id",
+      "values.parent.id",
+      "values.inline.path",
+      "values.inline.from",
+      "values.inline.to",
+      "values.resolution.type",
+      "values.resolution.user.display_name",
+      "values.resolution.user.uuid",
+      "values.resolution.user.account_id",
+      "values.resolution.created_on",
+      "values.deleted",
+      "values.pending",
+      "values.user.display_name",
+      "values.user.uuid",
+      "values.user.account_id",
+      "values.content.raw",
+      "values.created_on",
+      "values.links.html.href",
+      "next",
+      "page",
+      "pagelen",
+    ]);
+    expect(COMMENT_LIST_FIELDS).toBe(fields.join(","));
+  });
+
+  it("keeps the keys the deleted-thread filter reads in a caller's fields", () => {
+    expect(commentListFields("values.content.raw")).toBe(
+      "values.content.raw,values.id,values.parent.id,values.deleted,next,page,pagelen"
+    );
+  });
+
+  it("keeps relative fields as given", () => {
+    expect(commentListFields("+values.content.html")).toBe("+values.content.html");
+  });
+});
 
 describe("withoutDeletedThreads", () => {
   it("keeps live comments untouched", () => {
