@@ -1,4 +1,5 @@
 import {
+  ACTIVITY_LIST_FIELDS,
   PULL_REQUEST_FIELDS,
   PULL_REQUEST_LIST_FIELDS,
   pullRequestParams,
@@ -121,6 +122,34 @@ describe("pullRequestParams", () => {
     expect(pullRequestParams("id,merge_commit.hash")).toEqual({
       fields: "id,merge_commit.hash",
     });
+  });
+});
+
+describe("ACTIVITY_LIST_FIELDS", () => {
+  it("keeps who acted and when, for comments, approvals, change requests and updates", () => {
+    expect(ACTIVITY_LIST_FIELDS.split(",")).toEqual([
+      "values.comment.id",
+      "values.comment.created_on",
+      "values.comment.user.display_name",
+      "values.comment.user.uuid",
+      "values.comment.user.account_id",
+      "values.approval.date",
+      "values.approval.user.display_name",
+      "values.approval.user.uuid",
+      "values.approval.user.account_id",
+      "values.changes_requested.date",
+      "values.changes_requested.user.display_name",
+      "values.changes_requested.user.uuid",
+      "values.changes_requested.user.account_id",
+      "values.update.state",
+      "values.update.date",
+      "values.update.author.display_name",
+      "values.update.author.uuid",
+      "values.update.author.account_id",
+      "next",
+      "page",
+      "pagelen",
+    ]);
   });
 });
 

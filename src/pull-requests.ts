@@ -41,6 +41,24 @@ export const pullRequestParams = (fields?: string): { fields: string } => ({
   fields: fields ?? PULL_REQUEST_FIELDS,
 });
 
+/**
+ * An activity entry holds one of `comment`, `approval`, `changes_requested` or `update`, each
+ * with the whole pull request and comment attached. A review reads who acted and when, so the
+ * default is about a fifteenth of the full page.
+ */
+export const ACTIVITY_LIST_FIELDS = pageFields([
+  "comment.id",
+  "comment.created_on",
+  ...userFields("comment.user"),
+  "approval.date",
+  ...userFields("approval.user"),
+  "changes_requested.date",
+  ...userFields("changes_requested.user"),
+  "update.state",
+  "update.date",
+  ...userFields("update.author"),
+]);
+
 export const PULL_REQUEST_STATES = ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"] as const;
 
 export type PullRequestState = (typeof PULL_REQUEST_STATES)[number];
