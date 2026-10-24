@@ -773,7 +773,7 @@ class BitbucketServer {
         {
           name: "getPullRequestActivity",
           description:
-            "Get activity log for a pull request. Each entry carries a slim default projection: who acted and when, for `comment` (id, user, created_on), `approval` and `changes_requested` (user, date) and `update` (state, date, author); `fields` overrides it.",
+            "Get activity log for a pull request. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page. Each entry carries a slim default projection: who acted and when, for `comment` (id, user, created_on), `approval` and `changes_requested` (user, date) and `update` (state, date, author); `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -963,7 +963,7 @@ class BitbucketServer {
         {
           name: "getPullRequestCommits",
           description:
-            "Get commits on a pull request. Each commit carries a slim default projection (hash, date, message, author.user); `fields` overrides it, e.g. `values.author.raw` for an author with no Bitbucket account.",
+            "Get commits on a pull request. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page. Each commit carries a slim default projection (hash, date, message, author.user); `fields` overrides it, e.g. `values.author.raw` for an author with no Bitbucket account.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1414,7 +1414,7 @@ class BitbucketServer {
         {
           name: "listPipelineRuns",
           description:
-            "List pipeline runs for a repository. Each run carries a slim default projection (uuid, build_number, state.name, state.result.name, target.ref_name, target.commit.hash, created_on, completed_on); `fields` overrides it.",
+            "List pipeline runs for a repository. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page. Each run carries a slim default projection (uuid, build_number, state.name, state.result.name, target.ref_name, target.commit.hash, created_on, completed_on); `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1561,7 +1561,7 @@ class BitbucketServer {
         },
         {
           name: "getPipelineSteps",
-          description: "List steps for a pipeline run",
+          description: "List steps for a pipeline run. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1783,7 +1783,7 @@ class BitbucketServer {
         },
         {
           name: "getPullRequestDiffStat",
-          description: "Get diff statistics for a pull request",
+          description: "Get diff statistics for a pull request. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1821,7 +1821,7 @@ class BitbucketServer {
         },
         {
           name: "getPullRequestTasks",
-          description: "List tasks on a pull request",
+          description: "List tasks on a pull request. Returns one page as `{ values, page, pagelen, next }`; pass `page` for a later page or `all: true` for every page.",
           inputSchema: {
             type: "object",
             properties: {
@@ -2741,7 +2741,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.values, null, 2),
+            text: JSON.stringify(toPage(result), null, 2),
           },
         ],
       };
@@ -3151,7 +3151,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.values, null, 2),
+            text: JSON.stringify(toPage(result), null, 2),
           },
         ],
       };
@@ -4012,7 +4012,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.values, null, 2),
+            text: JSON.stringify(toPage(result), null, 2),
           },
         ],
       };
@@ -4219,7 +4219,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.values, null, 2),
+            text: JSON.stringify(toPage(result), null, 2),
           },
         ],
       };
@@ -4661,7 +4661,7 @@ class BitbucketServer {
 
       return {
         content: [
-          { type: "text", text: JSON.stringify(result.values, null, 2) },
+          { type: "text", text: JSON.stringify(toPage(result), null, 2) },
         ],
       };
     } catch (error) {
@@ -4744,7 +4744,7 @@ class BitbucketServer {
 
       return {
         content: [
-          { type: "text", text: JSON.stringify(result.values, null, 2) },
+          { type: "text", text: JSON.stringify(toPage(result), null, 2) },
         ],
       };
     } catch (error) {
