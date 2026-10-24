@@ -80,6 +80,22 @@ A user object (`author`, `user`, `reviewers[]`, `participants[].user`) keeps `di
 `getPullRequests` gets its projection in Phase 1 (item 5). Phase 3 extends the pattern to the
 other tools. Exit: tag `v5.0.7-edm.3`.
 
+Found live during Phase 3 (aioriash/edm-webservices, PR #3361):
+
+- The pipelines endpoint ignores `q` and returns every run. Item 13 exposes no `q`.
+  `target_branch` (query `target.branch`) matches `target.ref_name`. A pull request run has
+  no `ref_name`.
+- The comment list returns `resolution: {}`. Item 10 asks for `resolution.type`,
+  `resolution.user` and `resolution.created_on`; the key still appears only on a resolved root.
+- The PR list and the activity log return HTTP 400 above `pagelen` 50. Comments, commits and
+  pipelines take 100. Item 17 clamps to 50 on the two.
+- On pipelines, `status` and `trigger_type` match almost nothing: `status=SUCCESSFUL` returns
+  no run, and `trigger_type` matches uppercase values only (`PUSH`), while the schema enum is
+  lowercase. Not fixed here.
+- Sizes, full to default: PR 22 KB to 4 KB, comments 63 to 21 KB, activity 114 to 8 KB,
+  commits 403 to 60 KB, 20 pipeline runs 52 to 7 KB.
+- Item 14 (`fields` on POST and PUT) is not yet checked live: it needs a write.
+
 Source of the field sets: a sweep of every skill and doc that calls these tools
 (`edm-webservices/.claude/skills/**`, `docs/agents/`). No script parses a response; the
 consumers are LLM prose, so a dropped field fails silently. Review each set against that sweep
@@ -94,7 +110,7 @@ After each tag, update in this order:
 3. `edm-pr-triage` step 2: filter by `author.uuid` and `reviewers.uuid` through `q`.
 4. `edm-bitbucket`: reviewers through `updatePullRequest`, request changes, the publish-pending
    limit, `close_source_branch`.
-5. `edm-sync-desenv-team`: `listPipelineRuns` with `q` on `target.ref_name`.
+5. `edm-sync-desenv-team`: `listPipelineRuns` with `target_branch` (the endpoint ignores `q`).
 6. `/retro-evolve edm-ticket` revisão 01: plan the cluster as "upstream/external: bitbucket-mcp
    fork", then mark `2026-10-22-triage-parser-and-router-order#3` and
    `2026-10-23-pr-listing-overflows-context#1` RESOLVED.
@@ -103,5 +119,5 @@ After each tag, update in this order:
 
 - [x] Phase 1 (local commits on `plan`; tag and install pending)
 - [x] Phase 2 (local commits on `plan`, checked live on PRs #3395 and #3396; tag and install pending)
-- [ ] Phase 3
+- [x] Phase 3 (local commits on `plan`; item 14 live check, tag and install pending)
 - [ ] Consumers
