@@ -1,5 +1,6 @@
 import {
   PULL_REQUEST_LIST_FIELDS,
+  pullRequestCreateBody,
   pullRequestListParams,
   pullRequestUpdateBody,
   pullRequestListQuery,
@@ -176,7 +177,69 @@ describe("pullRequestUpdateBody", () => {
     );
   });
 
+  it("passes close_source_branch through", () => {
+    expect(pullRequestUpdateBody({ close_source_branch: false })).toEqual({
+      close_source_branch: false,
+    });
+  });
+
+  it("rejects a close_source_branch that is not a boolean", () => {
+    expect(() => pullRequestUpdateBody({ close_source_branch: "false" })).toThrow(
+      "close_source_branch must be a boolean"
+    );
+  });
+
   it("rejects a title that is not a string", () => {
     expect(() => pullRequestUpdateBody({ title: 1 })).toThrow("title must be a string");
+  });
+});
+
+describe("pullRequestCreateBody", () => {
+  const required = {
+    workspace: "ws",
+    title: "t",
+    description: "d",
+    sourceBranch: "feature/x",
+    targetBranch: "desenv",
+  };
+
+  it("builds the POST body and closes the source branch by default", () => {
+    expect(pullRequestCreateBody(required)).toEqual({
+      title: "t",
+      description: "d",
+      source: { branch: { name: "feature/x" } },
+      destination: { branch: { name: "desenv" } },
+      close_source_branch: true,
+    });
+  });
+
+  it("keeps the source branch when close_source_branch is false", () => {
+    expect(
+      pullRequestCreateBody({ ...required, close_source_branch: false })
+    ).toMatchObject({ close_source_branch: false });
+  });
+
+  it("adds reviewers and draft only when the caller asks for them", () => {
+    const body = pullRequestCreateBody({
+      ...required,
+      reviewers: ["{a-1}"],
+      draft: true,
+    });
+    expect(body).toMatchObject({ reviewers: [{ uuid: "{a-1}" }], draft: true });
+    expect(pullRequestCreateBody({ ...required, reviewers: [], draft: false })).not.toHaveProperty(
+      "reviewers"
+    );
+    expect(pullRequestCreateBody({ ...required, draft: false })).not.toHaveProperty("draft");
+  });
+
+  it("rejects a missing required field", () => {
+    const { sourceBranch: _omitted, ...rest } = required;
+    expect(() => pullRequestCreateBody(rest)).toThrow("sourceBranch is required");
+  });
+
+  it("rejects a close_source_branch that is not a boolean", () => {
+    expect(() => pullRequestCreateBody({ ...required, close_source_branch: 1 })).toThrow(
+      "close_source_branch must be a boolean"
+    );
   });
 });

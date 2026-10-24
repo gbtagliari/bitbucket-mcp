@@ -44,6 +44,19 @@ const optionalString = (args: Record<string, unknown>, name: string) => {
   return value;
 };
 
+const requiredString = (args: Record<string, unknown>, name: string) => {
+  const value = optionalString(args, name);
+  if (value === undefined) throw new Error(`${name} is required`);
+  return value;
+};
+
+const optionalBoolean = (args: Record<string, unknown>, name: string) => {
+  const value = args[name];
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "boolean") throw new Error(`${name} must be a boolean`);
+  return value;
+};
+
 /**
  * The tool schema is advisory: the client may send anything. `state` is quoted into a BBQL
  * query, so it must be one of the states and nothing else.
@@ -148,5 +161,29 @@ export function pullRequestUpdateBody(
     }
     body.reviewers = reviewers;
   }
+  const closeSourceBranch = optionalBoolean(args, "close_source_branch");
+  if (closeSourceBranch !== undefined) body.close_source_branch = closeSourceBranch;
+  return body;
+}
+
+/**
+ * The POST body of createPullRequest. The source branch closes on merge unless the caller
+ * passes `close_source_branch: false`, as before the parameter existed.
+ */
+export function pullRequestCreateBody(
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    title: requiredString(args, "title"),
+    description: requiredString(args, "description"),
+    source: { branch: { name: requiredString(args, "sourceBranch") } },
+    destination: { branch: { name: requiredString(args, "targetBranch") } },
+    close_source_branch: optionalBoolean(args, "close_source_branch") ?? true,
+  };
+  if (args.reviewers !== undefined && args.reviewers !== null) {
+    const reviewers = reviewerList(args.reviewers);
+    if (reviewers.length > 0) body.reviewers = reviewers;
+  }
+  if (optionalBoolean(args, "draft") === true) body.draft = true;
   return body;
 }

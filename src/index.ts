@@ -25,6 +25,7 @@ import { createLogger } from "./logging.js";
 import { publishSummary, withoutDeletedThreads } from "./comments.js";
 import {
   type PullRequestListQuery,
+  pullRequestCreateBody,
   pullRequestListParams,
   pullRequestListQuery,
   pullRequestUpdateBody,
@@ -681,6 +682,11 @@ class BitbucketServer {
                 type: "boolean",
                 description: "Whether to create the pull request as a draft",
               },
+              close_source_branch: {
+                type: "boolean",
+                description:
+                  "Whether to delete the source branch after the merge. Default: true",
+              },
             },
             required: [
               "workspace",
@@ -738,6 +744,10 @@ class BitbucketServer {
                 items: { type: "string" },
                 description:
                   "Reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}'). Replaces the whole reviewer list: to add a reviewer, pass the current reviewers plus the new one. Omit it to keep the list.",
+              },
+              close_source_branch: {
+                type: "boolean",
+                description: "Whether to delete the source branch after the merge",
               },
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -1297,6 +1307,11 @@ class BitbucketServer {
                 items: { type: "string" },
                 description:
                   "List of reviewer UUIDs (e.g., '{04776764-62c7-453b-b97e-302f60395ceb}')",
+              },
+              close_source_branch: {
+                type: "boolean",
+                description:
+                  "Whether to delete the source branch after the merge. Default: true",
               },
             },
             required: [
@@ -1986,16 +2001,21 @@ class BitbucketServer {
             );
           }
           case "createPullRequest":
+          case "createDraftPullRequest": {
+            let body: Record<string, unknown>;
+            try {
+              body = pullRequestCreateBody(
+                toolName === "createDraftPullRequest" ? { ...args, draft: true } : args
+              );
+            } catch (error) {
+              throw new McpError(ErrorCode.InvalidParams, describeError(error));
+            }
             return await this.createPullRequest(
               args.workspace as string,
               args.repo_slug as string,
-              args.title as string,
-              args.description as string,
-              args.sourceBranch as string,
-              args.targetBranch as string,
-              args.reviewers as string[] | undefined,
-              args.draft as boolean
+              body
             );
+          }
           case "getPullRequest":
             return await this.getPullRequest(
               args.workspace as string,
@@ -2152,16 +2172,6 @@ class BitbucketServer {
               args.development as Record<string, any>,
               args.production as Record<string, any>,
               args.branch_types as Array<Record<string, any>>
-            );
-          case "createDraftPullRequest":
-            return await this.createDraftPullRequest(
-              args.workspace as string,
-              args.repo_slug as string,
-              args.title as string,
-              args.description as string,
-              args.sourceBranch as string,
-              args.targetBranch as string,
-              args.reviewers as string[]
             );
           case "publishDraftPullRequest":
             return await this.publishDraftPullRequest(
@@ -2551,64 +2561,17 @@ class BitbucketServer {
   async createPullRequest(
     workspace: string,
     repo_slug: string,
-    title: string,
-    description: string,
-    sourceBranch: string,
-    targetBranch: string,
-    reviewers?: string[],
-    draft?: boolean
+    requestPayload: Record<string, unknown>
   ) {
     try {
       logger.info("Creating Bitbucket pull request", {
         workspace,
         repo_slug,
-        title,
-        sourceBranch,
-        targetBranch,
+        title: requestPayload.title,
+        source: requestPayload.source,
+        destination: requestPayload.destination,
+        draft: requestPayload.draft === true,
       });
-
-      // Prepare reviewers format if provided
-      // Bitbucket API expects reviewers as array of objects: [{uuid: "{...}"}]
-      // Input is string array of UUIDs: ["{04776764-62c7-453b-b97e-302f60395ceb}", ...]
-      // Convert to API format: [{uuid: "{...}"}, ...]
-      let reviewersArray: Array<{ uuid: string }> | undefined;
-
-      if (reviewers && reviewers.length > 0) {
-        reviewersArray = reviewers
-          .filter((uuid) => typeof uuid === "string" && uuid.trim().length > 0)
-          .map((uuid) => ({ uuid: uuid.trim() }));
-
-        if (reviewersArray.length === 0) {
-          reviewersArray = undefined;
-        }
-      }
-
-      // Build request payload - only include reviewers if provided
-      const requestPayload: Record<string, any> = {
-        title,
-        description,
-        source: {
-          branch: {
-            name: sourceBranch,
-          },
-        },
-        destination: {
-          branch: {
-            name: targetBranch,
-          },
-        },
-        close_source_branch: true,
-      };
-
-      // Only include reviewers field if there are reviewers to add
-      if (reviewersArray && reviewersArray.length > 0) {
-        requestPayload.reviewers = reviewersArray;
-      }
-
-      // Only include draft field if explicitly set to true
-      if (draft === true) {
-        requestPayload.draft = true;
-      }
 
       // Create the pull request
       const response = await this.api.post(
@@ -3672,48 +3635,6 @@ class BitbucketServer {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to publish pending comments: ${describeError(error)}`
-      );
-    }
-  }
-
-  async createDraftPullRequest(
-    workspace: string,
-    repo_slug: string,
-    title: string,
-    description: string,
-    sourceBranch: string,
-    targetBranch: string,
-    reviewers?: string[]
-  ) {
-    try {
-      logger.info("Creating draft Bitbucket pull request", {
-        workspace,
-        repo_slug,
-        title,
-        sourceBranch,
-        targetBranch,
-      });
-
-      // Use the existing createPullRequest method with draft=true
-      return await this.createPullRequest(
-        workspace,
-        repo_slug,
-        title,
-        description,
-        sourceBranch,
-        targetBranch,
-        reviewers,
-        true // Set draft to true
-      );
-    } catch (error) {
-      logger.error("Error creating draft pull request", {
-        error,
-        workspace,
-        repo_slug,
-      });
-      throw new McpError(
-        ErrorCode.InternalError,
-        `Failed to create draft pull request: ${describeError(error)}`
       );
     }
   }
