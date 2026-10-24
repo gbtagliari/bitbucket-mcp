@@ -1,3 +1,5 @@
+import type { AxiosInstance } from "axios";
+
 const PAGING_FIELDS = ["next", "page", "pagelen"];
 
 const USER_FIELDS = ["display_name", "uuid", "account_id"];
@@ -181,4 +183,28 @@ export function pullRequestCreateBody(
   }
   if (optionalBoolean(args, "draft") === true) body.draft = true;
   return body;
+}
+
+/**
+ * PUT /pullrequests/{id} echoes its body, but Bitbucket saves the call only when it changes the
+ * title, the description or the reviewers. A call that changes close_source_branch alone reads
+ * as a success and leaves the field as it was, so the field is read back.
+ */
+export async function updatePullRequest(
+  api: AxiosInstance,
+  workspace: string,
+  repo_slug: string,
+  pull_request_id: string,
+  body: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const path = `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`;
+  const response = await api.put(path, body);
+  if (body.close_source_branch === undefined) return response.data;
+  const saved = await api.get(path, { params: { fields: "close_source_branch" } });
+  if (saved.data?.close_source_branch !== body.close_source_branch) {
+    throw new Error(
+      "Bitbucket did not save close_source_branch: it saves the field only when the same call changes the title, the description or the reviewers"
+    );
+  }
+  return response.data;
 }

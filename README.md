@@ -293,7 +293,7 @@ Updates a pull request.
 - `title` (optional): New title
 - `description` (optional): New description
 - `reviewers` (optional): Reviewer UUIDs. The list replaces the current reviewers, so pass the current ones plus the new one to add a reviewer. An empty list removes every reviewer.
-- `close_source_branch` (optional): Whether to delete the source branch after the merge
+- `close_source_branch` (optional): Whether to delete the source branch after the merge. Bitbucket saves it only when the same call changes the title, the description or the reviewers. The tool reads the field back and fails when Bitbucket did not save it.
 
 A field you leave out keeps its value.
 

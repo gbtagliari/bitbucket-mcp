@@ -30,6 +30,7 @@ import {
   pullRequestListQuery,
   pullRequestUpdateBody,
   uniquePullRequests,
+  updatePullRequest,
 } from "./pull-requests.js";
 import { removeChangeRequest, requestChanges } from "./reviews.js";
 import { isDangerousTool } from "./safety.js";
@@ -750,7 +751,8 @@ class BitbucketServer {
               },
               close_source_branch: {
                 type: "boolean",
-                description: "Whether to delete the source branch after the merge",
+                description:
+                  "Whether to delete the source branch after the merge. Bitbucket saves it only when the same call changes the title, the description or the reviewers; otherwise the call fails.",
               },
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -2636,8 +2638,11 @@ class BitbucketServer {
         fields: Object.keys(body),
       });
 
-      const response = await this.api.put(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`,
+      const pullRequest = await updatePullRequest(
+        this.api,
+        workspace,
+        repo_slug,
+        pull_request_id,
         body
       );
 
@@ -2645,7 +2650,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(response.data, null, 2),
+            text: JSON.stringify(pullRequest, null, 2),
           },
         ],
       };
