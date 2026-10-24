@@ -236,13 +236,19 @@ Gets details for a specific repository.
 
 #### `getPullRequests`
 
-Gets pull requests for a repository.
+Gets pull requests for a repository. Returns one page as `{ values, page, pagelen, next }`.
+
+Each pull request carries a slim default projection: `id`, `title`, `state`, `author`, `reviewers`, `source.branch.name`, `destination.branch.name`, `source.commit.hash`, `created_on`, `updated_on` and `links.html.href`. A user object keeps `display_name`, `uuid` and `account_id`.
 
 **Parameters:**
 
 - `workspace`: Bitbucket workspace name
 - `repo_slug`: Repository slug
-- `state` (optional): Pull request state (`OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED`)
+- `state` (optional): Pull request state (`OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED`). Without `state` and `q`, Bitbucket lists `OPEN` only.
+- `q` (optional): Bitbucket query language filter, e.g. `source.branch.name ~ "ED-1234-"`. Bitbucket ignores the `state` parameter once `q` is set, so the tool folds `state` into `q`.
+- `sort` (optional): Sort field; prefix `-` for descending, e.g. `-updated_on`
+- `fields` (optional): Partial-response selector that replaces the default projection, e.g. `values.id,values.title`. `next`, `page` and `pagelen` are added to a whitelist. `+values.x` adds to Bitbucket's full objects instead.
+- `next` (optional): The `next` link of a previous response. Only links under the configured API URL are accepted.
 - Pagination controls described in [Pagination](#pagination)
 
 #### `createPullRequest`

@@ -9,6 +9,7 @@ export interface PaginationRequestOptions {
   pagelen?: number;
   page?: number;
   all?: boolean;
+  next?: string;
   params?: Record<string, any>;
   defaultPagelen?: number;
   maxItems?: number;
@@ -44,6 +45,7 @@ export class BitbucketPaginator {
       pagelen,
       page,
       all = false,
+      next,
       params = {},
       defaultPagelen = BITBUCKET_DEFAULT_PAGELEN,
       maxItems = BITBUCKET_ALL_ITEMS_CAP,
@@ -62,10 +64,11 @@ export class BitbucketPaginator {
     }
 
     const shouldFetchAll = all === true && page === undefined;
-    const requestDescriptor: PendingRequestConfig = {
-      url: path,
-      params: requestParams,
-    };
+    // A next link already carries every query parameter of the request that produced it.
+    const requestDescriptor: PendingRequestConfig =
+      next !== undefined
+        ? { url: this.checkedNextLink(next) }
+        : { url: path, params: requestParams };
 
     if (!shouldFetchAll) {
       const response = await this.performRequest(
@@ -146,6 +149,20 @@ export class BitbucketPaginator {
       fetchedPages,
       totalFetched: aggregated.length,
     };
+  }
+
+  /**
+   * The client sends its credentials with every request, so a next link must point back at
+   * the configured API and never at another host.
+   */
+  private checkedNextLink(next: string): string {
+    const base = (this.api.defaults?.baseURL ?? "").replace(/\/+$/, "");
+    if (!base || !next.startsWith(`${base}/`)) {
+      throw new Error(
+        `next must be a link returned by the Bitbucket API (${base || "no base URL"})`
+      );
+    }
+    return next;
   }
 
   private async performRequest(

@@ -22,6 +22,7 @@ import {
 } from "./pagination.js";
 import { describeError } from "./errors.js";
 import { withoutDeletedThreads } from "./comments.js";
+import { pullRequestListParams } from "./pull-requests.js";
 
 // =========== LOGGER SETUP ==========
 // File-based logging with sensible defaults and ability to disable
@@ -616,7 +617,8 @@ class BitbucketServer {
         },
         {
           name: "getPullRequests",
-          description: "Get pull requests for a repository",
+          description:
+            "Get pull requests for a repository. Returns one page as `{ values, page, pagelen, next }`; pass `next` back to fetch the following page. Each pull request carries a slim default projection; `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -628,7 +630,28 @@ class BitbucketServer {
               state: {
                 type: "string",
                 enum: ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"],
-                description: "Pull request state",
+                description:
+                  "Pull request state. Without `state` and `q`, Bitbucket lists OPEN pull requests only. With `q`, it matches every state unless `state` is also given.",
+              },
+              q: {
+                type: "string",
+                description:
+                  'Bitbucket query language filter, e.g. `source.branch.name ~ "ED-1234-"` or `author.uuid = "{...}"`.',
+              },
+              sort: {
+                type: "string",
+                description:
+                  "Field to sort by; prefix `-` for descending, e.g. `-updated_on`.",
+              },
+              fields: {
+                type: "string",
+                description:
+                  "Bitbucket partial-response selector that replaces the default projection, e.g. `values.id,values.title,values.participants`. Paths start at the page, so pull request fields take the `values.` prefix. `+values.x` adds to Bitbucket's full objects instead.",
+              },
+              next: {
+                type: "string",
+                description:
+                  "The `next` link of a previous response. It carries the original filters, so the other filters are ignored.",
               },
               ...PAGINATION_BASE_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,
@@ -1921,7 +1944,13 @@ class BitbucketServer {
               args.pagelen as number,
               args.page as number,
               args.all as boolean,
-              args.limit as number
+              args.limit as number,
+              {
+                q: args.q as string | undefined,
+                sort: args.sort as string | undefined,
+                fields: args.fields as string | undefined,
+                next: args.next as string | undefined,
+              }
             );
           case "createPullRequest":
             return await this.createPullRequest(
@@ -2425,7 +2454,8 @@ class BitbucketServer {
     pagelen?: number,
     page?: number,
     all?: boolean,
-    legacyLimit?: number
+    legacyLimit?: number,
+    options: { q?: string; sort?: string; fields?: string; next?: string } = {}
   ) {
     try {
       logger.info("Getting Bitbucket pull requests", {
@@ -2435,20 +2465,18 @@ class BitbucketServer {
         pagelen: pagelen ?? legacyLimit,
         page,
         all,
+        ...options,
       });
 
-      const params: Record<string, any> = {};
-      if (state) {
-        params.state = state;
-      }
-
+      const { next, ...filters } = options;
       const result = await this.paginator.fetchValues<BitbucketPullRequest>(
         `/repositories/${workspace}/${repo_slug}/pullrequests`,
         {
           pagelen: pagelen ?? legacyLimit,
           page,
           all,
-          params,
+          next,
+          params: pullRequestListParams({ state, ...filters }),
           description: "getPullRequests",
         }
       );
@@ -2457,7 +2485,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.values, null, 2),
+            text: JSON.stringify(toPage(result), null, 2),
           },
         ],
       };

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `getPullRequests` takes `q` (BBQL), `sort`, `fields` and `next`, and returns `{ values, page, pagelen, next }`. A default projection keeps each pull request small; a MERGED list returned megabytes before. Bitbucket ignores `state` once `q` is set, so the tool folds `state` into `q`.
+- Every tool error now carries the HTTP status, the request and Bitbucket's error message, detail and fields.
 - `getPullRequestComments` now returns `{ values, page, pagelen, next }`. It previously returned only the first 10 comments and dropped the `next` link, so callers had no way to tell that a review thread had been truncated. One page stays the default; `all: true` fetches every page.
 - `getPullRequestComments` now omits deleted comments and every reply below a deleted thread root. Bitbucket keeps deleted comments in the collection with their content blanked out, so withdrawn feedback was reaching callers as if it were still live.
 - `publishPendingComments` now reports how many comments it actually published and raises an error when none could be published. Bitbucket Cloud rejects `pending` on `PUT /comments/{id}` with `{"fields": {"pending": "extra keys not allowed"}}`, so every publish failed while the tool still reported `Published N pending comments`.

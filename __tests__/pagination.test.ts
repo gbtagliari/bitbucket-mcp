@@ -131,3 +131,45 @@ describe("toPage", () => {
     expect(page.values).toEqual([{ id: 2 }]);
   });
 });
+
+describe("BitbucketPaginator next link", () => {
+  const withBaseUrl = () => {
+    const axios = createMockAxios();
+    (axios as any).defaults = { baseURL: "https://api.bitbucket.org/2.0" };
+    return axios;
+  };
+
+  it("fetches the next link as given", async () => {
+    const axios = withBaseUrl();
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+    const next =
+      "https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests?page=2&q=state%3D%22OPEN%22";
+    (axios.get as any).mockResolvedValue({ data: { values: [{ id: 3 }], page: 2 } });
+
+    const result = await paginator.fetchValues("/ignored", {
+      next,
+      params: { q: "ignored" },
+    });
+
+    expect(axios.get).toHaveBeenCalledWith(next, undefined);
+    expect(result.values).toEqual([{ id: 3 }]);
+    expect(result.page).toBe(2);
+  });
+
+  it("refuses a next link outside the configured API", async () => {
+    const axios = withBaseUrl();
+    const paginator = new BitbucketPaginator(axios, createMockLogger());
+
+    await expect(
+      paginator.fetchValues("/ignored", {
+        next: "https://evil.example/2.0/repositories?page=2",
+      })
+    ).rejects.toThrow("next must be a link returned by the Bitbucket API");
+    await expect(
+      paginator.fetchValues("/ignored", {
+        next: "https://api.bitbucket.org.evil.example/2.0/x",
+      })
+    ).rejects.toThrow("next must be a link returned by the Bitbucket API");
+    expect(axios.get).not.toHaveBeenCalled();
+  });
+});
