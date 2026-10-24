@@ -1,6 +1,3 @@
-/**
- * The HTTP client every Bitbucket call goes through.
- */
 import axios, { type AxiosInstance } from "axios";
 
 export interface ApiClientConfig {
@@ -13,8 +10,9 @@ export interface ApiClientConfig {
 /**
  * Credentials travel as an Authorization header. Axios's `auth` option is lost when a request
  * follows a redirect, so a same-host 302 (e.g. /pullrequests/{id}/diffstat) reached its target
- * unauthenticated and failed with 404. The redirect follower keeps the header on the same host
- * and drops it on another host, such as the S3 link a step log redirects to.
+ * unauthenticated and failed with 404. The redirect follower (follow-redirects) keeps the
+ * header on the same host, a subdomain of it, and an http-to-https upgrade; it drops the header
+ * on any other host, such as the S3 link a step log redirects to.
  */
 export function createApiClient(config: ApiClientConfig): AxiosInstance {
   const headers: Record<string, string> = {};

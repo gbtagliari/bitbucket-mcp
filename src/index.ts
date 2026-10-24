@@ -638,7 +638,7 @@ class BitbucketServer {
               next: {
                 type: "string",
                 description:
-                  "The `next` link of a previous response. It carries the original filters, so the other filters are ignored.",
+                  "Bitbucket Cloud only. The `next` link of a previous response. It carries the original filters, so the other filters are ignored.",
               },
               ...PAGINATION_BASE_SCHEMA,
               all: PAGINATION_ALL_SCHEMA,

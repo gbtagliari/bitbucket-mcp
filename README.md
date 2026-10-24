@@ -248,7 +248,7 @@ Each pull request carries a slim default projection: `id`, `title`, `state`, `au
 - `q` (optional): Bitbucket query language filter, e.g. `source.branch.name ~ "ED-1234-"`. Bitbucket ignores the `state` parameter once `q` is set, so the tool folds `state` into `q`.
 - `sort` (optional): Sort field; prefix `-` for descending, e.g. `-updated_on`
 - `fields` (optional): Partial-response selector that replaces the default projection, e.g. `values.id,values.title`. `next`, `page` and `pagelen` are added to a whitelist. `+values.x` adds to Bitbucket's full objects instead.
-- `next` (optional): The `next` link of a previous response. Only links under the configured API URL are accepted.
+- `next` (optional, Bitbucket Cloud only): The `next` link of a previous response. Only links under the configured API URL are accepted.
 - Pagination controls described in [Pagination](#pagination)
 
 #### `createPullRequest`
@@ -418,7 +418,7 @@ Deleted comments and every reply below a deleted thread root are omitted. Bitbuc
 - `repo_slug`: Repository slug
 - `pull_request_id`: Pull request ID
 - `pagelen` (optional): Items per page
-- `page` (optional): Fetch this single page instead of every page
+- `page` (optional): Page number to fetch (1-based)
 - `all` (optional): Fetch every page (capped at 1,000 items)
 
 > **Draft comments:** Bitbucket Cloud accepts `pending: true` when creating a comment, but exposes no REST endpoint that publishes a draft — `PUT /comments/{id}` rejects `pending` with `extra keys not allowed`. A comment created through `addPendingPullRequestComment` therefore stays invisible to reviewers until it is published from the Bitbucket UI, and `publishPendingComments` raises an error against Bitbucket Cloud. Use `addPullRequestComment` for comments reviewers should see.
