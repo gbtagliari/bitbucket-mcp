@@ -1,7 +1,7 @@
 import http from "http";
 import type { AddressInfo } from "net";
 import { createApiClient } from "../src/http.js";
-import { updatePullRequest } from "../src/pull-requests.js";
+import { PULL_REQUEST_FIELDS, updatePullRequest } from "../src/pull-requests.js";
 
 type Seen = { method?: string; path?: string; body: string };
 
@@ -43,12 +43,19 @@ describe("updatePullRequest", () => {
   afterEach(() => new Promise((done) => server.close(done)));
 
   const path = "/2.0/repositories/ws/repo/pullrequests/7";
+  const projected = `${path}?fields=${PULL_REQUEST_FIELDS}`;
 
   it("sends one PUT when close_source_branch is not in the body", async () => {
     const data = await updatePullRequest(api, "ws", "repo", "7", { title: "u" });
 
     expect(data).toMatchObject({ title: "u" });
-    expect(seen).toEqual([{ method: "PUT", path, body: '{"title":"u"}' }]);
+    expect(seen).toEqual([{ method: "PUT", path: projected, body: '{"title":"u"}' }]);
+  });
+
+  it("projects the echo onto the caller's fields", async () => {
+    await updatePullRequest(api, "ws", "repo", "7", { title: "u" }, "id,reviewers");
+
+    expect(seen[0].path).toBe(`${path}?fields=id,reviewers`);
   });
 
   it("reads close_source_branch back and returns the PR when Bitbucket saved it", async () => {
@@ -58,8 +65,10 @@ describe("updatePullRequest", () => {
     });
 
     expect(data).toMatchObject({ close_source_branch: false });
-    expect(seen.map((request) => request.method)).toEqual(["PUT", "GET"]);
-    expect(seen[1].path).toBe(`${path}?fields=close_source_branch`);
+    expect(seen.map((request) => request.path)).toEqual([
+      projected,
+      `${path}?fields=close_source_branch`,
+    ]);
   });
 
   it("fails when Bitbucket echoed close_source_branch but did not save it", async () => {

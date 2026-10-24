@@ -671,7 +671,8 @@ class BitbucketServer {
         },
         {
           name: "createPullRequest",
-          description: "Create a new pull request",
+          description:
+            "Create a new pull request. Returns the created pull request in the `getPullRequest` projection; `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -708,6 +709,7 @@ class BitbucketServer {
                 description:
                   "Whether to delete the source branch after the merge. Default: true",
               },
+              fields: objectFieldsSchema("id,links.html.href"),
             },
             required: [
               "workspace",
@@ -744,7 +746,8 @@ class BitbucketServer {
         },
         {
           name: "updatePullRequest",
-          description: "Update a pull request",
+          description:
+            "Update a pull request. Returns the updated pull request in the `getPullRequest` projection; `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -773,6 +776,7 @@ class BitbucketServer {
                 description:
                   "Whether to delete the source branch after the merge. Bitbucket saves it only when the same call changes the title, the description or the reviewers; otherwise the call fails.",
               },
+              fields: objectFieldsSchema("id,reviewers.uuid"),
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
           },
@@ -1309,7 +1313,8 @@ class BitbucketServer {
         },
         {
           name: "createDraftPullRequest",
-          description: "Create a new draft pull request",
+          description:
+            "Create a new draft pull request. Returns the created pull request in the `getPullRequest` projection; `fields` overrides it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1342,6 +1347,7 @@ class BitbucketServer {
                 description:
                   "Whether to delete the source branch after the merge. Default: true",
               },
+              fields: objectFieldsSchema("id,links.html.href"),
             },
             required: [
               "workspace",
@@ -2034,7 +2040,8 @@ class BitbucketServer {
                 pullRequestCreateBody(
                   toolName === "createDraftPullRequest" ? { ...args, draft: true } : args
                 )
-              )
+              ),
+              validArguments(() => fieldsArgument(args))
             );
           case "getPullRequest":
             return await this.getPullRequest(
@@ -2048,7 +2055,8 @@ class BitbucketServer {
               args.workspace as string,
               args.repo_slug as string,
               args.pull_request_id as string,
-              validArguments(() => pullRequestUpdateBody(args))
+              validArguments(() => pullRequestUpdateBody(args)),
+              validArguments(() => fieldsArgument(args))
             );
           case "getPullRequestActivity":
             return await this.getPullRequestActivity(
@@ -2579,7 +2587,8 @@ class BitbucketServer {
   async createPullRequest(
     workspace: string,
     repo_slug: string,
-    requestPayload: Record<string, unknown>
+    requestPayload: Record<string, unknown>,
+    fields?: string
   ) {
     try {
       logger.info("Creating Bitbucket pull request", {
@@ -2594,7 +2603,8 @@ class BitbucketServer {
       // Create the pull request
       const response = await this.api.post(
         `/repositories/${workspace}/${repo_slug}/pullrequests`,
-        requestPayload
+        requestPayload,
+        { params: pullRequestParams(fields) }
       );
 
       return {
@@ -2663,7 +2673,8 @@ class BitbucketServer {
     workspace: string,
     repo_slug: string,
     pull_request_id: string,
-    body: Record<string, unknown>
+    body: Record<string, unknown>,
+    fields?: string
   ) {
     try {
       logger.info("Updating Bitbucket pull request", {
@@ -2678,7 +2689,8 @@ class BitbucketServer {
         workspace,
         repo_slug,
         pull_request_id,
-        body
+        body,
+        fields
       );
 
       return {

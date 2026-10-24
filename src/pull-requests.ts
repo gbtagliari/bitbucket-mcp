@@ -216,17 +216,19 @@ export function pullRequestCreateBody(
 /**
  * PUT /pullrequests/{id} echoes its body, but Bitbucket saves the call only when it changes the
  * title, the description or the reviewers. A call that changes close_source_branch alone reads
- * as a success and leaves the field as it was, so the field is read back.
+ * as a success and leaves the field as it was, so the field is read back. The echo takes the
+ * getPullRequest projection unless the caller passes `fields`.
  */
 export async function updatePullRequest(
   api: AxiosInstance,
   workspace: string,
   repo_slug: string,
   pull_request_id: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  fields?: string
 ): Promise<Record<string, unknown>> {
   const path = `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`;
-  const response = await api.put(path, body);
+  const response = await api.put(path, body, { params: pullRequestParams(fields) });
   if (body.close_source_branch === undefined) return response.data;
   const saved = await api.get(path, { params: { fields: "close_source_branch" } });
   if (saved.data?.close_source_branch !== body.close_source_branch) {
