@@ -119,7 +119,7 @@ After each tag, update in this order:
 
 ## Progress
 
-- [x] Phase 1 (local commits on `plan`; tag and install pending)
-- [x] Phase 2 (local commits on `plan`, checked live on PRs #3395 and #3396; tag and install pending)
-- [x] Phase 3 (local commits on `plan`, checked live on PRs #3361 and #3397; tag and install pending)
-- [ ] Consumers
+- [x] Phase 1 (tagged v5.0.7-edm.1 and .1.1, installed)
+- [x] Phase 2 (checked live on PRs #3395 and #3396; tagged v5.0.7-edm.2, installed)
+- [x] Phase 3 (checked live on PRs #3361 and #3397; tagged v5.0.7-edm.3, installed)
+- [x] Consumers (steps 1-6, edm-webservices `chore/update-repo-skills`; mcp.md pins v5.0.7-edm.3)
