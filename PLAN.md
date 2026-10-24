@@ -94,7 +94,9 @@ Found live during Phase 3 (aioriash/edm-webservices, PR #3361):
   lowercase. Not fixed here.
 - Sizes, full to default: PR 22 KB to 4 KB, comments 63 to 21 KB, activity 114 to 8 KB,
   commits 403 to 60 KB, 20 pipeline runs 52 to 7 KB.
-- Item 14 (`fields` on POST and PUT) is not yet checked live: it needs a write.
+- Item 14 checked live on throwaway draft PR #3397 (declined, branch deleted): POST and PUT
+  honor `fields`, with the default and with a caller's set; the `close_source_branch` read-back
+  still holds.
 
 Source of the field sets: a sweep of every skill and doc that calls these tools
 (`edm-webservices/.claude/skills/**`, `docs/agents/`). No script parses a response; the
@@ -119,5 +121,5 @@ After each tag, update in this order:
 
 - [x] Phase 1 (local commits on `plan`; tag and install pending)
 - [x] Phase 2 (local commits on `plan`, checked live on PRs #3395 and #3396; tag and install pending)
-- [x] Phase 3 (local commits on `plan`; item 14 live check, tag and install pending)
+- [x] Phase 3 (local commits on `plan`, checked live on PRs #3361 and #3397; tag and install pending)
 - [ ] Consumers
