@@ -101,7 +101,7 @@ After each tag, update in this order:
 
 ## Progress
 
-- [ ] Phase 1
+- [x] Phase 1 (local commits on `plan`; tag and install pending)
 - [ ] Phase 2
 - [ ] Phase 3
 - [ ] Consumers
