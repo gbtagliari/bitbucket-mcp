@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server for integrating with Bitbucket Cloud and S
 
 ## Safety First
 
-This is a safe and responsible package — no DELETE operations are used, so there's no risk of data loss.
+This is a safe and responsible package. A tool that deletes content (a comment, a task) stays off until `BITBUCKET_ENABLE_DANGEROUS` is set. `unapprovePullRequest` and `removeChangeRequest` send DELETE too, but they only withdraw your own review vote, so they stay on.
 Every pull request is analyzed with CodeQL to ensure the code remains secure.
 
 [![CodeQL](https://github.com/MatanYemini/bitbucket-mcp/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/MatanYemini/bitbucket-mcp/actions/workflows/github-code-scanning/codeql)
@@ -318,6 +318,26 @@ Approves a pull request.
 #### `unapprovePullRequest`
 
 Removes an approval from a pull request.
+
+**Parameters:**
+
+- `workspace`: Bitbucket workspace name
+- `repo_slug`: Repository slug
+- `pull_request_id`: Pull request ID
+
+#### `requestChanges`
+
+Requests changes on a pull request as the authenticated user. Bitbucket Cloud only.
+
+**Parameters:**
+
+- `workspace`: Bitbucket workspace name
+- `repo_slug`: Repository slug
+- `pull_request_id`: Pull request ID
+
+#### `removeChangeRequest`
+
+Withdraws the change request the authenticated user made. Bitbucket Cloud only.
 
 **Parameters:**
 

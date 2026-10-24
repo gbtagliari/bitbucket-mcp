@@ -30,6 +30,11 @@ import {
   pullRequestUpdateBody,
   uniquePullRequests,
 } from "./pull-requests.js";
+import {
+  isDangerousTool,
+  removeChangeRequest,
+  requestChanges,
+} from "./reviews.js";
 
 // =========== LOGGER SETUP ==========
 // File-based logging with sensible defaults and ability to disable
@@ -481,15 +486,8 @@ class BitbucketServer {
   private readonly api: AxiosInstance;
   private readonly config: BitbucketConfig;
   private readonly paginator: BitbucketPaginator;
-  private readonly dangerousToolNames = new Set<string>([
-    "deletePullRequestComment",
-    "deletePullRequestTask",
-  ]);
   private isDangerousTool(name: string): boolean {
-    // Explicitly dangerous or conservative prefix match (delete*)
-    if (this.dangerousToolNames.has(name)) return true;
-    if (/^delete/i.test(name)) return true;
-    return false;
+    return isDangerousTool(name);
   }
 
   constructor() {
@@ -810,7 +808,7 @@ class BitbucketServer {
         },
         {
           name: "requestChanges",
-          description: "Request changes on a pull request",
+          description: "Request changes on a pull request as the authenticated user. Bitbucket Cloud only.",
           inputSchema: {
             type: "object",
             properties: {
@@ -823,15 +821,13 @@ class BitbucketServer {
                 type: "string",
                 description: "Pull request ID",
               },
-              ...PAGINATION_BASE_SCHEMA,
-              all: PAGINATION_ALL_SCHEMA,
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
           },
         },
         {
           name: "removeChangeRequest",
-          description: "Remove a change request from a pull request",
+          description: "Remove a change request from a pull request the authenticated user made. Bitbucket Cloud only.",
           inputSchema: {
             type: "object",
             properties: {
@@ -844,8 +840,6 @@ class BitbucketServer {
                 type: "string",
                 description: "Pull request ID",
               },
-              ...PAGINATION_BASE_SCHEMA,
-              all: PAGINATION_ALL_SCHEMA,
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
           },
@@ -2863,16 +2857,18 @@ class BitbucketServer {
         pull_request_id,
       });
 
-      const response = await this.api.post(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}/request-changes`,
-        {}
+      const participant = await requestChanges(
+        this.api,
+        workspace,
+        repo_slug,
+        pull_request_id
       );
 
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(response.data, null, 2),
+            text: JSON.stringify(participant, null, 2),
           },
         ],
       };
@@ -2885,9 +2881,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to request changes on pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to request changes on pull request: ${describeError(error)}`
       );
     }
   }
@@ -2904,9 +2898,7 @@ class BitbucketServer {
         pull_request_id,
       });
 
-      await this.api.delete(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}/request-changes`
-      );
+      await removeChangeRequest(this.api, workspace, repo_slug, pull_request_id);
 
       return {
         content: [
@@ -2925,9 +2917,7 @@ class BitbucketServer {
       });
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to remove change request from pull request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to remove change request from pull request: ${describeError(error)}`
       );
     }
   }
