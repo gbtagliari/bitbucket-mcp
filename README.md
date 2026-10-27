@@ -446,7 +446,7 @@ Deleted comments and every reply below a deleted thread root are omitted. Bitbuc
 - `page` (optional): Page number to fetch (1-based)
 - `all` (optional): Fetch every page (capped at 1,000 items)
 
-> **Draft comments:** Bitbucket Cloud accepts `pending: true` when creating a comment, but exposes no REST endpoint that publishes a draft — `PUT /comments/{id}` rejects `pending` with `extra keys not allowed`. A comment created through `addPendingPullRequestComment` therefore stays invisible to reviewers until it is published from the Bitbucket UI, and `publishPendingComments` raises an error against Bitbucket Cloud. Use `addPullRequestComment` for comments reviewers should see.
+> **Draft comments:** Bitbucket Cloud accepts `pending: true` when creating a comment, but exposes no REST endpoint that publishes a draft: `PUT /comments/{id}` rejects `pending` with `extra keys not allowed`. `publishPendingComments` works around it. It posts a copy of each of your drafts with `pending: false`, then deletes the draft, and returns one row per draft (`draft_id`, `new_id`, `status`). A `delete_failed` row means the comment is posted and the draft still exists, so remove the draft by hand. An outdated inline draft is posted at file level.
 
 #### `addPullRequestComment`
 

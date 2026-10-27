@@ -26,7 +26,6 @@ import { fieldsArgument, listFields } from "./fields.js";
 import { createLogger } from "./logging.js";
 import {
   commentListFields,
-  publishSummary,
   withoutDeletedThreads,
 } from "./comments.js";
 import {
@@ -41,6 +40,7 @@ import {
   uniquePullRequests,
   updatePullRequest,
 } from "./pull-requests.js";
+import { deleteComment, publishDrafts, publishDraftsSummary } from "./drafts.js";
 import { pipelineListParams } from "./pipelines.js";
 import { removeChangeRequest, requestChanges } from "./reviews.js";
 import { isDangerousTool } from "./safety.js";
@@ -1042,7 +1042,7 @@ class BitbucketServer {
         {
           name: "addPendingPullRequestComment",
           description:
-            "Add a pending (draft) comment to a pull request. Note: Bitbucket Cloud offers no REST endpoint that publishes a draft, so the comment stays invisible to reviewers until it is published from the Bitbucket UI. Use addPullRequestComment to post a comment reviewers can see.",
+            "Add a pending (draft) comment to a pull request. The comment stays invisible to reviewers until it is published, from the Bitbucket UI or with publishPendingComments (which posts a copy and deletes the draft). Use addPullRequestComment to post a comment reviewers can see.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1088,7 +1088,7 @@ class BitbucketServer {
         {
           name: "publishPendingComments",
           description:
-            "Publish all pending comments for a pull request. Bitbucket Cloud rejects `pending` on PUT /comments/{id}, so this fails against Bitbucket Cloud and raises an error instead of reporting a false success.",
+            "Publish the authenticated user's pending (draft) comments on a pull request. Bitbucket Cloud has no endpoint that publishes a draft, so each draft is posted again with pending=false and then deleted. A reply keeps its parent (a draft root is published first and its replies point at the new id). A root inline draft keeps its line; an outdated one is posted at file level (anchor: \"file\"). Returns one row per draft: draft_id, new_id, status (published, post_failed, delete_failed, skipped). post_failed keeps the draft. delete_failed means the comment is posted and the draft still exists: a duplicate risk, remove the draft by hand. draft_task_ids lists tasks on a draft, which the delete may drop. Raises an error when nothing was posted.",
           inputSchema: {
             type: "object",
             properties: {
@@ -1100,6 +1100,12 @@ class BitbucketServer {
               pull_request_id: {
                 type: "string",
                 description: "Pull request ID",
+              },
+              comment_ids: {
+                type: "array",
+                items: { type: ["string", "number"] },
+                description:
+                  "Publish only these draft ids. Omitted: every pending draft of the authenticated user.",
               },
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -1708,7 +1714,8 @@ class BitbucketServer {
         },
         {
           name: "deletePullRequestComment",
-          description: "Delete a comment on a pull request",
+          description:
+            "Delete a comment on a pull request. A published comment cannot be restored. Deleting a thread root takes its replies with it.",
           inputSchema: {
             type: "object",
             properties: {
@@ -2144,7 +2151,8 @@ class BitbucketServer {
             return await this.publishPendingComments(
               args.workspace as string,
               args.repo_slug as string,
-              args.pull_request_id as string
+              args.pull_request_id as string,
+              args.comment_ids as (string | number)[] | undefined
             );
           case "getRepositoryBranchingModel":
             return await this.getRepositoryBranchingModel(
@@ -3552,96 +3560,44 @@ class BitbucketServer {
   async publishPendingComments(
     workspace: string,
     repo_slug: string,
-    pull_request_id: string
+    pull_request_id: string,
+    comment_ids?: (string | number)[]
   ) {
     try {
       logger.info("Publishing pending comments for Bitbucket pull request", {
         workspace,
         repo_slug,
         pull_request_id,
+        comment_ids,
       });
 
-      // First, get all pending comments for the pull request
-      const commentsResult = await this.paginator.fetchValues(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}/comments`,
-        {
-          pagelen: BITBUCKET_MAX_PAGELEN,
-          all: true,
-          description: "publishPendingComments",
-        }
-      );
+      const rows = await publishDrafts(this.api, this.paginator, {
+        workspace,
+        repo_slug,
+        pull_request_id,
+        comment_ids,
+      });
 
-      type PendingComment = {
-        id: number;
-        content: { raw?: string; html?: string; markup?: string };
-        inline?: InlineCommentInline;
-        pending?: boolean;
-      };
-
-      const comments = (commentsResult.values || []) as PendingComment[];
-      const pendingComments = comments.filter(
-        (comment: any) => comment.pending === true
-      ) as PendingComment[];
-
-      if (pendingComments.length === 0) {
+      if (rows.length === 0) {
         return {
           content: [
-            {
-              type: "text",
-              text: "No pending comments found to publish.",
-            },
+            { type: "text", text: "No pending comments found to publish." },
           ],
         };
       }
 
-      // Publish each pending comment by updating it with pending=false
-      const publishResults = [];
-      for (const comment of pendingComments) {
-        try {
-          const updateResponse = await this.api.put(
-            `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}/comments/${comment.id}`,
-            {
-              content: comment.content,
-              pending: false,
-              ...(comment.inline && { inline: comment.inline }),
-            }
-          );
-          publishResults.push({
-            commentId: comment.id,
-            status: "published",
-            data: updateResponse.data,
-          });
-        } catch (error) {
-          publishResults.push({
-            commentId: comment.id,
-            status: "error",
-            error: describeError(error),
-          });
-        }
-      }
-
-      const published = publishResults.filter(
-        (result) => result.status === "published"
-      ).length;
-
-      // Bitbucket Cloud rejects `pending` on PUT /comments/{id} with
-      // `{"fields": {"pending": "extra keys not allowed"}}`, and exposes no other endpoint
-      // that publishes a draft. Reporting a success count here regardless of the outcome
-      // told callers a review had been posted while every comment stayed invisible.
-      if (published === 0) {
+      const message = publishDraftsSummary(rows);
+      // Nothing posted is a failure, not a summary: the caller must not read it as a publish.
+      if (!rows.some((row) => row.new_id !== undefined)) {
         logger.error("No pending comment could be published", {
           workspace,
           repo_slug,
           pull_request_id,
-          results: publishResults,
+          results: rows,
         });
         throw new McpError(
           ErrorCode.InternalError,
-          `Failed to publish ${pendingComments.length} pending comment(s). ` +
-            `Bitbucket Cloud does not accept 'pending' on PUT /comments/{id}, so a draft ` +
-            `comment cannot be published through the REST API; publish it from the ` +
-            `Bitbucket UI, or post with addPullRequestComment instead of drafting. ` +
-            `Details: ${JSON.stringify(publishResults)}`
+          `${message}. Details: ${JSON.stringify(rows)}`
         );
       }
 
@@ -3649,14 +3605,7 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              {
-                message: publishSummary(published, pendingComments.length),
-                results: publishResults,
-              },
-              null,
-              2
-            ),
+            text: JSON.stringify({ message, results: rows }, null, 2),
           },
         ],
       };
@@ -4518,8 +4467,12 @@ class BitbucketServer {
         comment_id,
       });
 
-      await this.api.delete(
-        `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}/comments/${comment_id}`
+      await deleteComment(
+        this.api,
+        workspace,
+        repo_slug,
+        pull_request_id,
+        comment_id
       );
 
       return {
