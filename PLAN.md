@@ -128,3 +128,7 @@ After each tag, update in this order:
   `npx github:gbtagliari/bitbucket-mcp#v5.0.7-edm.4`, documented in docs/agents/mcp.md)
 - [x] Smoke of v5.0.7-edm.3 (PR #3391): list tools return pages, pipeline runs carry `target.type`,
   `prepare` builds dist for `npx github:gbtagliari/bitbucket-mcp#<tag>`; tagged v5.0.7-edm.4
+- [x] Comment tools (PR #3379): `publishPendingComments` posts a copy of each draft and deletes
+  the draft, replies before roots; draft 889659802 became comment 889659822 (`pending: false`,
+  draft GET 404). `deletePullRequestComment` stays behind `BITBUCKET_ENABLE_DANGEROUS`;
+  tagged v5.0.7-edm.5
