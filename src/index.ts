@@ -26,6 +26,7 @@ import { fieldsArgument, listFields } from "./fields.js";
 import { createLogger } from "./logging.js";
 import {
   commentListFields,
+  deleteComment,
   withoutDeletedThreads,
 } from "./comments.js";
 import {
@@ -40,7 +41,7 @@ import {
   uniquePullRequests,
   updatePullRequest,
 } from "./pull-requests.js";
-import { deleteComment, publishDrafts, publishDraftsSummary } from "./drafts.js";
+import { parseCommentIds, publishDrafts, publishDraftsSummary } from "./drafts.js";
 import { pipelineListParams } from "./pipelines.js";
 import { removeChangeRequest, requestChanges } from "./reviews.js";
 import { isDangerousTool } from "./safety.js";
@@ -1105,7 +1106,7 @@ class BitbucketServer {
                 type: "array",
                 items: { type: ["string", "number"] },
                 description:
-                  "Publish only these draft ids. Omitted: every pending draft of the authenticated user.",
+                  "Publish only these draft ids (non-empty, no duplicates needed). Omitted: every pending draft of the authenticated user.",
               },
             },
             required: ["workspace", "repo_slug", "pull_request_id"],
@@ -2152,7 +2153,7 @@ class BitbucketServer {
               args.workspace as string,
               args.repo_slug as string,
               args.pull_request_id as string,
-              args.comment_ids as (string | number)[] | undefined
+              args.comment_ids
             );
           case "getRepositoryBranchingModel":
             return await this.getRepositoryBranchingModel(
@@ -3561,7 +3562,7 @@ class BitbucketServer {
     workspace: string,
     repo_slug: string,
     pull_request_id: string,
-    comment_ids?: (string | number)[]
+    comment_ids?: unknown
   ) {
     try {
       logger.info("Publishing pending comments for Bitbucket pull request", {
@@ -3571,12 +3572,26 @@ class BitbucketServer {
         comment_ids,
       });
 
-      const rows = await publishDrafts(this.api, this.paginator, {
-        workspace,
-        repo_slug,
-        pull_request_id,
-        comment_ids,
-      });
+      let ids: number[] | undefined;
+      try {
+        ids = parseCommentIds(comment_ids);
+      } catch (error) {
+        throw new McpError(ErrorCode.InvalidParams, (error as Error).message);
+      }
+      const { rows, tasks_error } = await publishDrafts(
+        this.api,
+        this.paginator,
+        { workspace, repo_slug, pull_request_id },
+        ids
+      );
+      if (tasks_error) {
+        logger.warn("Could not read the tasks of the drafts", {
+          workspace,
+          repo_slug,
+          pull_request_id,
+          tasks_error,
+        });
+      }
 
       if (rows.length === 0) {
         return {
@@ -3605,7 +3620,11 @@ class BitbucketServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ message, results: rows }, null, 2),
+            text: JSON.stringify(
+              { message, results: rows, ...(tasks_error && { tasks_error }) },
+              null,
+              2
+            ),
           },
         ],
       };
@@ -4469,9 +4488,7 @@ class BitbucketServer {
 
       await deleteComment(
         this.api,
-        workspace,
-        repo_slug,
-        pull_request_id,
+        { workspace, repo_slug, pull_request_id },
         comment_id
       );
 

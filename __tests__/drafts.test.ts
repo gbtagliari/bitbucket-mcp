@@ -2,7 +2,8 @@ import http from "http";
 import type { AddressInfo } from "net";
 import { createApiClient } from "../src/http.js";
 import { BitbucketPaginator } from "../src/pagination.js";
-import { deleteComment, publishDrafts, publishDraftsSummary } from "../src/drafts.js";
+import { deleteComment } from "../src/comments.js";
+import { parseCommentIds, publishDrafts, publishDraftsSummary } from "../src/drafts.js";
 
 type Comment = {
   id: number;
@@ -33,7 +34,10 @@ describe("drafts", () => {
   let api: ReturnType<typeof createApiClient>;
   let paginator: BitbucketPaginator;
 
-  const target = { workspace: "ws", repo_slug: "repo", pull_request_id: "7" };
+  const pr = { workspace: "ws", repo_slug: "repo", pull_request_id: "7" };
+  let me: object;
+  let failTasks: boolean;
+  const publish = async (ids?: number[]) => (await publishDrafts(api, paginator, pr, ids)).rows;
   const posts = () => calls.filter((call) => call.method === "POST");
   const deletes = () => calls.filter((call) => call.method === "DELETE");
 
@@ -44,6 +48,8 @@ describe("drafts", () => {
     failPost = () => false;
     failDelete = () => false;
     nextId = 900;
+    me = ME;
+    failTasks = false;
     server = http.createServer((req, res) => {
       let raw = "";
       req.on("data", (chunk) => (raw += chunk));
@@ -56,11 +62,12 @@ describe("drafts", () => {
           res.end(JSON.stringify(data));
         };
 
-        if (req.method === "GET" && path === "/2.0/user") return json(200, ME);
+        if (req.method === "GET" && path === "/2.0/user") return json(200, me);
         if (req.method === "GET" && path === `${BASE}/comments`) {
           return json(200, { values: comments, pagelen: 100 });
         }
         if (req.method === "GET" && path === `${BASE}/tasks`) {
+          if (failTasks) return json(500, { type: "error", error: { message: "Boom" } });
           return json(200, { values: tasks, pagelen: 100 });
         }
         if (req.method === "POST" && path === `${BASE}/comments`) {
@@ -78,7 +85,10 @@ describe("drafts", () => {
           if (!comments.some((comment) => comment.id === id)) {
             return json(404, { type: "error", error: { message: "No Comment" } });
           }
-          comments = comments.filter((comment) => comment.id !== id);
+          // Bitbucket may take the replies with a deleted root.
+          comments = comments.filter(
+            (comment) => comment.id !== id && comment.parent?.id !== id
+          );
           res.writeHead(204).end();
           return;
         }
@@ -97,13 +107,13 @@ describe("drafts", () => {
     it("sends a DELETE on the comment and resolves on 204", async () => {
       comments = [{ id: 5, user: ME, content: { raw: "x" } }];
 
-      await deleteComment(api, "ws", "repo", "7", "5");
+      await deleteComment(api, pr, "5");
 
       expect(deletes()).toEqual([{ method: "DELETE", path: `${BASE}/comments/5` }]);
     });
 
     it("rejects with the HTTP status and Bitbucket's reason", async () => {
-      await expect(deleteComment(api, "ws", "repo", "7", "5")).rejects.toMatchObject({
+      await expect(deleteComment(api, pr, "5")).rejects.toMatchObject({
         response: { status: 404 },
       });
     });
@@ -113,7 +123,7 @@ describe("drafts", () => {
     it("copies a general draft as a published comment, then deletes the draft", async () => {
       comments = [{ id: 1, pending: true, user: ME, content: { raw: "general" } }];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts().map((call) => call.body)).toEqual([
         { content: { raw: "general" }, pending: false },
@@ -133,7 +143,7 @@ describe("drafts", () => {
         },
       ];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts()[0].body).toEqual({
         content: { raw: "inline" },
@@ -154,7 +164,7 @@ describe("drafts", () => {
         },
       ];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts()[0].body).toEqual({
         content: { raw: "old" },
@@ -170,7 +180,7 @@ describe("drafts", () => {
         { id: 11, pending: true, user: ME, content: { raw: "reply" }, parent: { id: 10 }, inline: { path: "a.ts", to: 4 } },
       ];
 
-      await publishDrafts(api, paginator, target);
+      await publish();
 
       expect(posts()[0].body).toEqual({
         content: { raw: "reply" },
@@ -185,7 +195,7 @@ describe("drafts", () => {
         { id: 20, pending: true, user: ME, content: { raw: "root" } },
       ];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts().map((call) => call.body.content.raw)).toEqual(["root", "reply"]);
       expect(posts()[1].body.parent).toEqual({ id: 900 });
@@ -202,7 +212,7 @@ describe("drafts", () => {
       ];
       failPost = (body) => body.content.raw === "root";
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts()).toHaveLength(1);
       expect(rows[1]).toMatchObject({ draft_id: 21, status: "skipped" });
@@ -213,7 +223,7 @@ describe("drafts", () => {
       comments = [{ id: 1, pending: true, user: ME, content: { raw: "x" } }];
       failPost = () => true;
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(deletes()).toEqual([]);
       expect(rows).toEqual([
@@ -225,7 +235,7 @@ describe("drafts", () => {
       comments = [{ id: 1, pending: true, user: ME, content: { raw: "x" } }];
       failDelete = () => true;
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(posts()).toHaveLength(1);
       expect(rows).toEqual([
@@ -246,7 +256,7 @@ describe("drafts", () => {
         { id: 4, pending: true, user: ME, content: { raw: "mine" } },
       ];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(rows.map((row) => row.draft_id)).toEqual([4]);
     });
@@ -258,7 +268,7 @@ describe("drafts", () => {
         { id: 3, pending: false, user: ME, content: { raw: "c" } },
       ];
 
-      const rows = await publishDrafts(api, paginator, { ...target, comment_ids: ["2", "3"] });
+      const rows = await publish([2, 3]);
 
       expect(posts().map((call) => call.body.content.raw)).toEqual(["b"]);
       expect(rows).toEqual([
@@ -277,7 +287,7 @@ describe("drafts", () => {
         { id: 21, pending: true, user: ME, content: { raw: "reply" }, parent: { id: 20 } },
       ];
 
-      const rows = await publishDrafts(api, paginator, { ...target, comment_ids: ["21"] });
+      const rows = await publish([21]);
 
       expect(posts()).toEqual([]);
       expect(rows[0]).toMatchObject({ draft_id: 21, status: "skipped" });
@@ -287,19 +297,66 @@ describe("drafts", () => {
       comments = [{ id: 1, pending: true, user: ME, content: { raw: "x" } }];
       tasks = [{ id: 70, comment: { id: 1 } }, { id: 71, comment: { id: 99 } }, { id: 72 }];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(rows[0]).toMatchObject({ status: "published", draft_task_ids: [70] });
+    });
+
+    it("deletes a draft reply before its draft root, so the root delete cannot take it", async () => {
+      comments = [
+        { id: 20, pending: true, user: ME, content: { raw: "root" } },
+        { id: 21, pending: true, user: ME, content: { raw: "reply" }, parent: { id: 20 } },
+      ];
+
+      const rows = await publish();
+
+      expect(deletes().map((call) => call.path)).toEqual([
+        `${BASE}/comments/21`,
+        `${BASE}/comments/20`,
+      ]);
+      expect(rows.map((row) => row.status)).toEqual(["published", "published"]);
+    });
+
+    it("fails loudly when /user does not identify the caller", async () => {
+      comments = [{ id: 1, pending: true, user: ME, content: { raw: "x" } }];
+      me = { display_name: "token" };
+
+      await expect(publish()).rejects.toThrow("no uuid or account_id");
+      expect(posts()).toEqual([]);
+    });
+
+    it("publishes anyway and reports why when the tasks cannot be read", async () => {
+      comments = [{ id: 1, pending: true, user: ME, content: { raw: "x" } }];
+      failTasks = true;
+
+      const result = await publishDrafts(api, paginator, pr);
+
+      expect(result.rows[0].status).toBe("published");
+      expect(result.tasks_error).toContain("HTTP 500");
     });
 
     it("returns no rows and sends no write when there is no draft", async () => {
       comments = [{ id: 2, pending: false, user: ME, content: { raw: "published" } }];
 
-      const rows = await publishDrafts(api, paginator, target);
+      const rows = await publish();
 
       expect(rows).toEqual([]);
       expect(posts()).toEqual([]);
       expect(deletes()).toEqual([]);
+    });
+  });
+
+  describe("parseCommentIds", () => {
+    it("reads numbers and digit strings, and drops repeats", () => {
+      expect(parseCommentIds(["2", 3, "2"])).toEqual([2, 3]);
+    });
+
+    it("leaves an omitted filter as none", () => {
+      expect(parseCommentIds(undefined)).toBeUndefined();
+    });
+
+    it.each([[[]], [["abc"]], [[1.5]], ["12"], [[{}]]])("rejects %j", (ids) => {
+      expect(() => parseCommentIds(ids)).toThrow("comment_ids must be");
     });
   });
 

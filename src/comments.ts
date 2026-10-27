@@ -2,7 +2,26 @@
  * Helpers for Bitbucket pull request comment collections.
  */
 
+import type { AxiosInstance } from "axios";
 import { PAGING_FIELDS, pageFields, userFields, withFields } from "./fields.js";
+
+export interface PullRequestRef {
+  workspace: string;
+  repo_slug: string;
+  pull_request_id: string;
+}
+
+export const pullRequestPath = ({ workspace, repo_slug, pull_request_id }: PullRequestRef) =>
+  `/repositories/${workspace}/${repo_slug}/pullrequests/${pull_request_id}`;
+
+/** Bitbucket answers 204. Any HTTP error rejects, so a failed delete never reads as done. */
+export async function deleteComment(
+  api: AxiosInstance,
+  pr: PullRequestRef,
+  comment_id: string | number
+): Promise<void> {
+  await api.delete(`${pullRequestPath(pr)}/comments/${comment_id}`);
+}
 
 /**
  * What a thread rebuild reads: the parent chain, the inline anchor, who resolved it and the
