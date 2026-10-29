@@ -41,7 +41,12 @@ import {
   uniquePullRequests,
   updatePullRequest,
 } from "./pull-requests.js";
-import { parseCommentIds, publishDrafts, publishDraftsSummary } from "./drafts.js";
+import {
+  nothingPublished,
+  parseCommentIds,
+  publishDrafts,
+  publishDraftsSummary,
+} from "./drafts.js";
 import { pipelineListParams } from "./pipelines.js";
 import { removeChangeRequest, requestChanges } from "./reviews.js";
 import { isDangerousTool } from "./safety.js";
@@ -3603,7 +3608,7 @@ class BitbucketServer {
 
       const message = publishDraftsSummary(rows);
       // Nothing posted is a failure, not a summary: the caller must not read it as a publish.
-      if (!rows.some((row) => row.new_id !== undefined)) {
+      if (nothingPublished(rows)) {
         logger.error("No pending comment could be published", {
           workspace,
           repo_slug,

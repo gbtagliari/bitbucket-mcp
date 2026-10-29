@@ -3,7 +3,12 @@ import type { AddressInfo } from "net";
 import { createApiClient } from "../src/http.js";
 import { BitbucketPaginator } from "../src/pagination.js";
 import { deleteComment } from "../src/comments.js";
-import { parseCommentIds, publishDrafts, publishDraftsSummary } from "../src/drafts.js";
+import {
+  nothingPublished,
+  parseCommentIds,
+  publishDrafts,
+  publishDraftsSummary,
+} from "../src/drafts.js";
 
 type Comment = {
   id: number;
@@ -378,6 +383,32 @@ describe("drafts", () => {
       expect(publishDraftsSummary([{ draft_id: 1, new_id: 9, status: "published" }])).toBe(
         "Published 1 of 1 pending comments"
       );
+    });
+  });
+
+  describe("nothingPublished", () => {
+    it("is a failure when every draft fails to post", () => {
+      expect(
+        nothingPublished([
+          { draft_id: 1, status: "post_failed", error: "HTTP 400" },
+          { draft_id: 2, status: "skipped", error: "Parent draft 1 was not published" },
+        ])
+      ).toBe(true);
+    });
+
+    it("is not a failure when one draft posts and the others fail", () => {
+      expect(
+        nothingPublished([
+          { draft_id: 1, new_id: 9, status: "published" },
+          { draft_id: 2, status: "post_failed", error: "HTTP 400" },
+        ])
+      ).toBe(false);
+    });
+
+    it("is not a failure when a copy is posted but its draft is not deleted", () => {
+      expect(
+        nothingPublished([{ draft_id: 1, new_id: 9, status: "delete_failed", error: "HTTP 500" }])
+      ).toBe(false);
     });
   });
 });

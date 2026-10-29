@@ -236,6 +236,10 @@ export async function publishDrafts(
   };
 }
 
+/** No copy was posted, so every draft is still pending: the caller must get an error. */
+export const nothingPublished = (rows: DraftRow[]): boolean =>
+  !rows.some((row) => row.new_id !== undefined);
+
 /**
  * A partial publish must not read as a full one, and a posted-but-undeleted draft must show
  * both ids so the caller can remove the duplicate.
