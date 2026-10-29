@@ -387,7 +387,7 @@ describe("drafts", () => {
   });
 
   describe("nothingPublished", () => {
-    it("is a failure when every draft fails to post", () => {
+    it("is true when no copy was posted", () => {
       expect(
         nothingPublished([
           { draft_id: 1, status: "post_failed", error: "HTTP 400" },
@@ -396,7 +396,7 @@ describe("drafts", () => {
       ).toBe(true);
     });
 
-    it("is not a failure when one draft posts and the others fail", () => {
+    it("is false when one copy was posted and the others failed", () => {
       expect(
         nothingPublished([
           { draft_id: 1, new_id: 9, status: "published" },
@@ -405,10 +405,22 @@ describe("drafts", () => {
       ).toBe(false);
     });
 
-    it("is not a failure when a copy is posted but its draft is not deleted", () => {
+    it("is false when a copy was posted but its draft was not deleted", () => {
       expect(
         nothingPublished([{ draft_id: 1, new_id: 9, status: "delete_failed", error: "HTTP 500" }])
       ).toBe(false);
+    });
+
+    it("is true when every id in comment_ids is not a draft", () => {
+      expect(
+        nothingPublished([
+          { draft_id: 5, status: "skipped", error: "Not a pending draft of the authenticated user" },
+        ])
+      ).toBe(true);
+    });
+
+    it("is false when there is no row, since there was nothing to publish", () => {
+      expect(nothingPublished([])).toBe(false);
     });
   });
 });

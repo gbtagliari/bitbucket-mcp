@@ -3607,7 +3607,6 @@ class BitbucketServer {
       }
 
       const message = publishDraftsSummary(rows);
-      // Nothing posted is a failure, not a summary: the caller must not read it as a publish.
       if (nothingPublished(rows)) {
         logger.error("No pending comment could be published", {
           workspace,

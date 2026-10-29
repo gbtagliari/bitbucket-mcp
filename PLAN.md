@@ -134,5 +134,6 @@ After each tag, update in this order:
   tagged v5.0.7-edm.5
 - [x] Publish 400 (edm-bitbucket retros of 2026-10-08 and 2026-10-19): both runs predate the
   first fork pin (2026-10-24). The old build sent `PUT /comments/{id}` with `pending: false`, and
-  Bitbucket Cloud rejects `pending` on PUT. v5.0.7-edm.5 replaced it with copy then delete. A
+  Bitbucket Cloud rejects `pending` on PUT. v5.0.7-edm.5 replaced it with copy then delete, and
+  each failed row carries the HTTP status and Bitbucket's reason (`describeError`). A
   unit test now covers the all-fail error (`nothingPublished`); no new tag, runtime unchanged

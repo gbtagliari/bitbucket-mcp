@@ -236,9 +236,10 @@ export async function publishDrafts(
   };
 }
 
-/** No copy was posted, so every draft is still pending: the caller must get an error. */
-export const nothingPublished = (rows: DraftRow[]): boolean =>
-  !rows.some((row) => row.new_id !== undefined);
+/** True when there are rows and no copy was posted, so every draft is still pending. */
+export function nothingPublished(rows: DraftRow[]): boolean {
+  return rows.length > 0 && !rows.some((row) => row.new_id !== undefined);
+}
 
 /**
  * A partial publish must not read as a full one, and a posted-but-undeleted draft must show
